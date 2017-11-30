@@ -16,3 +16,4 @@
 # 
 ratings/*
 other/
+*.db

@@ -4,8 +4,10 @@ import (
 	"flag"
 	"os"
 
-	"./discord"
+	"./api"
+	"./db"
 	"./logging"
+	"./rate"
 	"./types"
 )
 
@@ -32,19 +34,29 @@ func init() {
 
 	flag.Parse()
 
-	//db.Setup(dbName, dbUsername, dbPassword, *purge)
 	//state.InitChannels()
-	//rate.InitRatings()
+
+	logging.Log("TIME TO RESPEC")
+
+	err := db.Setup()
+	if err != nil {
+		logging.Err(err)
+		os.Exit(1)
+	}
+
+	rate.InitRatings()
 }
 
 func main() {
 	var err error
-	logging.Log("TIME TO RESPEC")
-	API = selectAPI()
-	if API == nil {
+
+	API, err = selectAPI()
+	if err != nil {
 		logging.Log("No API Selected")
+		logging.Err(err)
 		os.Exit(1)
 	}
+
 	logging.Log("Setting up API")
 	err = API.Setup()
 	if err != nil {
@@ -57,12 +69,12 @@ func main() {
 	}
 }
 
-func selectAPI() types.API {
+func selectAPI() (types.API, error) {
 	switch apiName {
 	case "discord":
-		return discord.New(token)
+		return api.NewDiscord(token)
 	default:
 		logging.Log("No valid api specified")
-		return nil
+		return nil, nil
 	}
 }

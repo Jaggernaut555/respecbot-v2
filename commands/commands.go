@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"../cards"
+	"../db"
+	"../rate"
 	"../types"
 	"../version"
 )
@@ -39,7 +41,7 @@ func init() {
 		"fuckoff":  CmdFuncHelpType{cmdNotHere, "Fuck off, bot", true},
 		"version":  CmdFuncHelpType{cmdVersion, "Outputs the current bot version", true},
 		"stats":    CmdFuncHelpType{cmdStats, "Displays stats about this bot", true},
-		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", false},
+		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", true},
 	}
 }
 
@@ -51,12 +53,12 @@ func HandleCommand(api types.API, message *types.Message) {
 	CmdFuncHelpPair, ok := cmdFuncs[args[0]]
 
 	if ok {
-		if !CmdFuncHelpPair.AllowedChannelOnly {
+		if !CmdFuncHelpPair.AllowedChannelOnly || message.Channel.Active {
 			CmdFuncHelpPair.Function(api, message, args)
 		}
 	} else {
 		var reply = fmt.Sprintf("I do not have command `%s`", args[0])
-		api.Reply(&types.Message{Content: reply, ChannelID: message.ChannelID})
+		api.ReplyTo(reply, message)
 	}
 }
 
@@ -75,37 +77,57 @@ func cmdHelp(api types.API, message *types.Message, args []string) {
 		cmds += fmt.Sprintf("%s - %s\n", key, cmdFuncs[key].Help)
 	}
 	cmds += "```\n"
-	api.Reply(&types.Message{Content: cmds, ChannelID: message.ChannelID})
+	api.ReplyTo(cmds, message)
 }
 
 func cmdVersion(api types.API, message *types.Message, args []string) {
 	reply := fmt.Sprintf("Version: %v", version.Version)
-	api.Reply(&types.Message{Content: reply, ChannelID: message.ChannelID})
+	api.ReplyTo(reply, message)
 }
 
 func cmdHere(api types.API, message *types.Message, args []string) {
-	api.Reply(&types.Message{Content: "Here not implemented yet", ChannelID: message.ChannelID})
+	if message.Channel.Active == true {
+		api.ReplyTo("Yeah", message)
+		return
+	}
+	message.Channel.Active = true
+	db.UpdateChannel(message.Channel)
+	api.ReplyTo("Fuck on me", message)
 }
 
 func cmdNotHere(api types.API, message *types.Message, args []string) {
-	api.Reply(&types.Message{Content: "NotHere not implemented yet", ChannelID: message.ChannelID})
+	if message.Channel.Active == false {
+		return
+	}
+	message.Channel.Active = false
+	db.UpdateChannel(message.Channel)
 }
 
 func cmdStats(api types.API, message *types.Message, args []string) {
-	/*
-		leaders, losers := rate.GetRespec()
-		var stats = "Leaderboard:\n```\n"
-		stats += leaders
-		stats += "```"
-		stats += "\nLosers:` "
-		stats += strings.Join(losers, ", ")
-		stats += " `"
-		state.SendReply(message.ChannelID, stats)
-	*/
-	api.Reply(&types.Message{Content: "Stats not implemented yet", ChannelID: message.ChannelID})
+	var leaders string
+	var losers []string
+	if len(args) < 2 {
+		leaders, losers = rate.GetRespec(message.Channel, types.Local)
+	} else {
+		switch strings.ToLower(args[1]) {
+		case "global":
+			leaders, losers = rate.GetRespec(message.Channel, types.Global)
+		case "server":
+			leaders, losers = rate.GetRespec(message.Channel, types.Guild)
+		default:
+			leaders, losers = rate.GetRespec(message.Channel, types.Local)
+		}
+	}
+	var stats = "Leaderboard:\n```\n"
+	stats += leaders
+	stats += "```"
+	stats += "\nLosers:` "
+	stats += strings.Join(losers, ", ")
+	stats += " `"
+	api.ReplyTo(stats, message)
 }
 
 func cmdCard(api types.API, message *types.Message, args []string) {
 	card := cards.GenerateCard()
-	api.Reply(&types.Message{Content: card.String(), ChannelID: message.ChannelID})
+	api.ReplyTo(card.String(), message)
 }
