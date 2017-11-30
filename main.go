@@ -29,7 +29,12 @@ func init() {
 	flag.Parse()
 
 	if *purge {
-		logging.Err(db.Purge())
+		err := db.Purge()
+		if err != nil {
+			logging.Err(err)
+		} else {
+			logging.Log("Deleted database files")
+		}
 		os.Exit(0)
 	}
 

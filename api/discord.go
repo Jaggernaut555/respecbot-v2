@@ -77,10 +77,6 @@ func (d *discord) HandleCommand(message *types.Message) error {
 	return nil
 }
 
-func (d *discord) FindMentions(msg *types.Message) []types.User {
-	return nil
-}
-
 func (d *discord) GetUser(UserID string) *types.User {
 	return nil
 }
@@ -114,14 +110,32 @@ func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
 	}
 }
 
-func reactionAdd(session *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
+func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	logging.Log("Reaction added")
-	//rate.RespecReaction(reaction.MessageReaction, true)
+	message, err := session.ChannelMessage(reaction.ChannelID, reaction.ChannelID)
+	if err != nil {
+		logging.Err(err)
+		return
+	}
+	author := getUser(message.Author)
+	channel := getChannel(reaction.ChannelID)
+	if reaction.UserID != author.ID {
+		rate.RespecOther(author, channel, rate.OtherValue)
+	}
 }
 
-func reactionRemove(session *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
+func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
 	logging.Log("Reaction removed")
-	//rate.RespecReaction(reaction.MessageReaction, false)
+	message, err := session.ChannelMessage(reaction.ChannelID, reaction.ChannelID)
+	if err != nil {
+		logging.Err(err)
+		return
+	}
+	author := getUser(message.Author)
+	channel := getChannel(reaction.ChannelID)
+	if reaction.UserID != author.ID {
+		rate.RespecOther(author, channel, -rate.MentionValue)
+	}
 }
 
 func createMessage(message *discordgo.Message) *types.Message {
@@ -135,6 +149,8 @@ func createMessage(message *discordgo.Message) *types.Message {
 	msg.Channel = channel
 	msg.ChannelKey = channel.Key
 
+	msg.Mentions = getMentionedUsers(message, msg)
+
 	msg.Content, _ = message.ContentWithMoreMentionsReplaced(session.Session)
 	msg.Time, _ = message.Timestamp.Parse()
 	msg.ID = message.ID
@@ -144,6 +160,46 @@ func createMessage(message *discordgo.Message) *types.Message {
 	return msg
 }
 
+func getMentionedUsers(message *discordgo.Message, msg *types.Message) []*types.User {
+	var users []*types.User
+	userMap := make(map[string]*types.User)
+
+	for _, v := range message.Mentions {
+		userMap[v.ID] = getUser(v)
+	}
+
+	for _, v := range message.MentionRoles {
+		roleUsers := getMentionedRoles(msg, v)
+		for _, v := range roleUsers {
+			userMap[v.ID] = v
+		}
+	}
+
+	for _, v := range userMap {
+		users = append(users, v)
+	}
+
+	return users
+}
+
+func getMentionedRoles(msg *types.Message, roleID string) []*types.User {
+	var users []*types.User
+	guild, err := session.Guild(msg.Channel.Server.ID)
+	if err != nil {
+		logging.Err(err)
+		return nil
+	}
+	for _, v := range guild.Members {
+		for _, role := range v.Roles {
+			if roleID == role {
+				users = append(users, getUser(v.User))
+			}
+		}
+	}
+
+	return users
+}
+
 func getUser(discordUser *discordgo.User) *types.User {
 	user := db.GetUser(discordUser.ID, discordName)
 	if user == nil {
@@ -151,6 +207,7 @@ func getUser(discordUser *discordgo.User) *types.User {
 		user.ID = discordUser.ID
 		user.Name = discordUser.Username
 		user.APIID = discordName
+		user.Bot = discordUser.Bot
 		db.NewUser(user)
 	}
 	return user

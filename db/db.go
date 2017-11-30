@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"../logging"
 	"../types"
@@ -34,6 +35,8 @@ func Setup() error {
 	logging.Log("SQLite file setup at", dbFile)
 
 	createTables(db)
+
+	//db.LogMode(true)
 
 	return err
 }
@@ -91,8 +94,16 @@ func LoadUserRespec(user *types.User, channel *types.Channel) int {
 	return respec.Respec
 }
 
+func GetLastRespecTime(user *types.User, channel *types.Channel) *time.Time {
+	var respec types.Respec
+	if db.First(&respec, types.Respec{UserKey: user.Key, ChannelKey: channel.Key}).RecordNotFound() {
+		return nil
+	}
+	return &respec.UpdatedAt
+}
+
 func AddRespec(respec *types.Respec) {
-	db.Where(types.Respec{UserKey: respec.UserKey, ChannelKey: respec.ChannelKey}).Assign(types.Respec{Respec: respec.Respec}).FirstOrCreate(respec)
+	db.Where(types.Respec{UserKey: respec.User.Key, ChannelKey: respec.Channel.Key}).Assign(types.Respec{Respec: respec.Respec}).FirstOrCreate(respec)
 }
 
 func LoadChannelUsersRespec(channel *types.Channel) types.PairList {
@@ -112,7 +123,7 @@ func LoadChannelUsersRespec(channel *types.Channel) types.PairList {
 func LoadServerUsersRespec(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Preload("Channel", "server_key = ?", channel.ServerKey).Group("user_key").Find(&respec).RecordNotFound() {
+	if db.Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("user_key").Find(&respec).RecordNotFound() {
 		return nil
 	}
 
@@ -149,6 +160,9 @@ func NewUser(user *types.User) error {
 	}
 	if user.Key != 0 {
 		return fmt.Errorf("Key already set")
+	}
+	if user.Bot {
+		return fmt.Errorf("Cannot add bot user")
 	}
 	if db.NewRecord(user) {
 		db.Create(user)

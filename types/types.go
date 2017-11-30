@@ -9,6 +9,7 @@ type Respec struct {
 	UserKey    uint
 	Channel    *Channel `gorm:"ForeignKey:ChannelKey"`
 	ChannelKey uint
+	UpdatedAt  time.Time
 }
 
 type User struct {
@@ -16,19 +17,20 @@ type User struct {
 	ID    string
 	Name  string
 	APIID string
+	Bot   bool `gorm:"-"` // This doesn't need to be stored in the database
 }
 
 type Message struct {
-	Key            uint `gorm:"primary_key"`
-	ID             string
-	Author         *User `gorm:"ForeignKey:UserKey"`
-	UserKey        uint
-	Content        string
-	Channel        *Channel `gorm:"ForeignKey:ChannelKey"`
-	ChannelKey     uint
-	MentionedUsers []User
-	Time           time.Time
-	APIID          string
+	Key        uint `gorm:"primary_key"`
+	ID         string
+	Author     *User `gorm:"ForeignKey:UserKey"`
+	UserKey    uint
+	Content    string
+	Channel    *Channel `gorm:"ForeignKey:ChannelKey"`
+	ChannelKey uint
+	Mentions   []*User `gorm:"-"` // This doesn't need to be stored in the database
+	Time       time.Time
+	APIID      string
 }
 
 type Channel struct {
@@ -52,7 +54,6 @@ type API interface {
 	Listen() error
 	ReplyTo(string, *Message) error
 	HandleCommand(*Message) error
-	FindMentions(*Message) []User
 	GetUser(string) *User
 	GetChannel(string) *Channel
 	GetServer(string) *Server

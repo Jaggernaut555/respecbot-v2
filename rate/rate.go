@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	correctUsageValue = 2
-	reactionValue     = 2
-	mentionValue      = 3
+	CorrectUsageValue = 2
+	MentionValue      = 3
+	OtherValue        = 2
 	chatLimiter       = 166
 )
 
@@ -100,14 +100,37 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 	return added, noChange
 }
 
-// evaluate messages
+// RespecMessage evaluate messages
 func RespecMessage(message *types.Message) {
 	numRespec := applyRules(message)
 
 	logging.Log(fmt.Sprintf("%v: %v", message.Author.Name, message.Content))
 
-	//numRespec += respecMentions(guild.ID, author, message)
+	respecMentions(message)
+
 	AddRespec(message.Author, message.Channel, numRespec)
+}
+
+func respecMentions(message *types.Message) {
+	for _, v := range message.Mentions {
+		fmt.Printf("%v Mentioned %v in channel %v\n", message.Author.Name, v.Name, message.ChannelKey)
+		RespecOther(v, message.Channel, MentionValue)
+	}
+}
+
+// RespecOther Give respec by some other means, ie mentioning.
+// Something that a user has no control and will only be applicable every 5 minutes
+func RespecOther(user *types.User, channel *types.Channel, rating int) {
+	now := time.Now()
+	last := db.GetLastRespecTime(user, channel)
+	if last != nil {
+		timeDelta := now.Sub(*last)
+		if timeDelta.Minutes() > 5 {
+			AddRespec(user, channel, rating)
+		}
+	} else {
+		AddRespec(user, channel, rating)
+	}
 }
 
 // get all da users in list
