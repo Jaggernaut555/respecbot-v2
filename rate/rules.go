@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"strings"
 
-	"../db"
-	"../types"
+	"github.com/Jaggernaut555/respecbot-v2/db"
+	"github.com/Jaggernaut555/respecbot-v2/types"
 	"github.com/bwmarrin/discordgo"
 )
 

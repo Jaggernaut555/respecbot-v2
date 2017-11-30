@@ -9,9 +9,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"../db"
-	"../logging"
-	"../types"
+	"github.com/Jaggernaut555/respecbot-v2/db"
+	"github.com/Jaggernaut555/respecbot-v2/logging"
+	"github.com/Jaggernaut555/respecbot-v2/types"
 )
 
 const (

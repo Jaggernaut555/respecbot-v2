@@ -7,11 +7,11 @@ import (
 	"strings"
 	"syscall"
 
-	"../commands"
-	"../db"
-	"../logging"
-	"../rate"
-	"../types"
+	"github.com/Jaggernaut555/respecbot-v2/commands"
+	"github.com/Jaggernaut555/respecbot-v2/db"
+	"github.com/Jaggernaut555/respecbot-v2/logging"
+	"github.com/Jaggernaut555/respecbot-v2/rate"
+	"github.com/Jaggernaut555/respecbot-v2/types"
 	"github.com/bwmarrin/discordgo"
 )
 

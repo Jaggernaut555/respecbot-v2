@@ -5,11 +5,11 @@ import (
 	"sort"
 	"strings"
 
-	"../cards"
-	"../db"
-	"../rate"
-	"../types"
-	"../version"
+	"github.com/Jaggernaut555/respecbot-v2/cards"
+	"github.com/Jaggernaut555/respecbot-v2/db"
+	"github.com/Jaggernaut555/respecbot-v2/rate"
+	"github.com/Jaggernaut555/respecbot-v2/types"
+	"github.com/Jaggernaut555/respecbot-v2/version"
 )
 
 // Constants

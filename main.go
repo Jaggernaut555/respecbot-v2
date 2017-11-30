@@ -4,11 +4,11 @@ import (
 	"flag"
 	"os"
 
-	"./api"
-	"./db"
-	"./logging"
-	"./rate"
-	"./types"
+	"github.com/Jaggernaut555/respecbot-v2/api"
+	"github.com/Jaggernaut555/respecbot-v2/db"
+	"github.com/Jaggernaut555/respecbot-v2/logging"
+	"github.com/Jaggernaut555/respecbot-v2/rate"
+	"github.com/Jaggernaut555/respecbot-v2/types"
 )
 
 // Global vars

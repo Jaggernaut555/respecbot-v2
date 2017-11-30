@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"../logging"
-	"../types"
+	"github.com/Jaggernaut555/respecbot-v2/logging"
+	"github.com/Jaggernaut555/respecbot-v2/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )

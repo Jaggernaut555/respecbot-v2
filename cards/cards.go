@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"../queue"
+	"github.com/Jaggernaut555/respecbot-v2/queue"
 )
 
 // CardNames - Array of the names of each card
