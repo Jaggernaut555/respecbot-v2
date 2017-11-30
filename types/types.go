@@ -11,11 +11,6 @@ type Respec struct {
 	ChannelKey uint
 }
 
-type UserRespec struct {
-	Respec   int
-	Username string
-}
-
 type User struct {
 	Key   uint `gorm:"primary_key;AUTO_INCREMENT"`
 	ID    string

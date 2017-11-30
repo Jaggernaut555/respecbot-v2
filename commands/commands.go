@@ -25,6 +25,7 @@ type CmdFuncHelpType struct {
 	Function           CmdFuncType
 	Help               string
 	AllowedChannelOnly bool
+	Overwriteable      bool
 }
 
 // CmdFuncsType The type of the CmdFuncs map
@@ -36,13 +37,24 @@ var cmdFuncs CmdFuncsType
 // Initializes the cmds map
 func init() {
 	cmdFuncs = CmdFuncsType{
-		"help":     CmdFuncHelpType{cmdHelp, "Prints this list", false},
-		"lookatme": CmdFuncHelpType{cmdHere, "Fuck off, user", false},
-		"fuckoff":  CmdFuncHelpType{cmdNotHere, "Fuck off, bot", true},
-		"version":  CmdFuncHelpType{cmdVersion, "Outputs the current bot version", true},
-		"stats":    CmdFuncHelpType{cmdStats, "Displays stats about this bot", true},
-		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", true},
+		"help":     CmdFuncHelpType{cmdHelp, "Prints this list", false, false},
+		"lookatme": CmdFuncHelpType{cmdHere, "Fuck off, user", false, false},
+		"fuckoff":  CmdFuncHelpType{cmdNotHere, "Fuck off, bot", true, false},
+		"version":  CmdFuncHelpType{cmdVersion, "Outputs the current bot version", true, false},
+		"stats":    CmdFuncHelpType{cmdStats, "Displays leaderbaord, optionally use 'stats server' or 'stats global'", true, false},
+		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", true, false},
 	}
+}
+
+func AddCommand(funcName string, f CmdFuncHelpType) error {
+	if f.Overwriteable == false {
+		return fmt.Errorf("Added function must be Overwriteable")
+	}
+	if v, ok := cmdFuncs[funcName]; (ok && v.Overwriteable) || !ok {
+		cmdFuncs[funcName] = f
+		return nil
+	}
+	return fmt.Errorf("Cannot overwrite function '%v'", funcName)
 }
 
 func HandleCommand(api types.API, message *types.Message) {

@@ -2,6 +2,8 @@ package db
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"../logging"
 	"../types"
@@ -10,25 +12,34 @@ import (
 )
 
 const (
-	dbLocation = "./gorm.db"
+	dbFileName  = "respecbot.db"
+	projectName = "respecbot"
 )
 
 var db *gorm.DB
+var dbDir = filepath.FromSlash(os.TempDir() + "/" + projectName)
+var dbFile = filepath.FromSlash(dbDir + "/" + dbFileName)
 
 func Setup() error {
 	var err error
-	db, err = gorm.Open("sqlite3", dbLocation)
+
+	if err = os.MkdirAll(dbDir, 0600); err != nil {
+		return err
+	}
+
+	db, err = gorm.Open("sqlite3", dbFile)
 	if err != nil {
 		return err
 	}
-	logging.Log("SQLite file setup at", dbLocation)
+	logging.Log("SQLite file setup at", dbFile)
 
-	deleteTables(db)
 	createTables(db)
 
-	//db.LogMode(true)
-
 	return err
+}
+
+func Purge() error {
+	return os.RemoveAll(dbDir)
 }
 
 func createTables(d *gorm.DB) {
@@ -47,10 +58,6 @@ func createTables(d *gorm.DB) {
 	if !d.HasTable(&types.Respec{}) {
 		d.CreateTable(&types.Respec{})
 	}
-}
-
-func deleteTables(d *gorm.DB) {
-	d.DropTableIfExists(&types.User{}, &types.Channel{}, &types.Server{}, &types.Message{}, &types.Respec{})
 }
 
 func GetTotalRespec() int {
@@ -105,7 +112,7 @@ func LoadChannelUsersRespec(channel *types.Channel) types.PairList {
 func LoadServerUsersRespec(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Preload("Channel", "server_key = ?", channel.ServerKey).Find(&respec).RecordNotFound() {
+	if db.Preload("User").Preload("Channel", "server_key = ?", channel.ServerKey).Group("user_key").Find(&respec).RecordNotFound() {
 		return nil
 	}
 
@@ -119,7 +126,7 @@ func LoadServerUsersRespec(channel *types.Channel) types.PairList {
 func LoadGlobalUsersRespec() types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Find(&respec).RecordNotFound() {
+	if db.Preload("User").Group("user_key").Find(&respec).RecordNotFound() {
 		return nil
 	}
 
