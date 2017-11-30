@@ -6,6 +6,7 @@ PULLREQ=$3
 case "$BRANCH" in
 "master" )
     if [[ $PULLREQ == 'false' ]]; then
+        echo "Deploying"
         #curl -H "Content-Type: application/json" -X POST -d '{"token":"'"$TOKEN"'", "branch":"'"$BRANCH"'"}' http://jaggernaut.ca:9000/hooks/deploy-respecbot-webhook
     else
         echo "Not Deploying a pull request"
@@ -13,6 +14,7 @@ case "$BRANCH" in
     ;;
 "staging" )
     if [[ $PULLREQ == 'false' ]]; then
+        echo "Deploying"
         #curl -H "Content-Type: application/json" -X POST -d '{"token":"'"$TOKEN"'", "branch":"'"$BRANCH"'"}' http://jaggernaut.ca:9000/hooks/deploy-respecbot-webhook
     else
         echo "Not Deploying a pull request"
