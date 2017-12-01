@@ -17,7 +17,7 @@ func TestLua(t *testing.T) {
 	script2.argPairs = []argPair{argPair{name: "i", value: "4"}}
 	script2.returns = []string{"int", "int", "string", "float"}
 	script2.script = `function abc(n) return n end return 4,5,"six",7.1 `
-	script.args = convertToInterface(script2.argPairs)
+	script2.args = convertToInterface(script2.argPairs)
 
 	var script3 luaScript
 	script3.argPairs = []argPair{argPair{name: "i", value: "5"}}
@@ -32,7 +32,7 @@ func TestLua(t *testing.T) {
 
 	v3 := callScript(&script3)
 
-	fmt.Printf("%+v\n", script3)
+	fmt.Printf("%+v\n", script)
 
 	err := verifyResults(v3, script3.returns)
 	if err != nil {
@@ -52,7 +52,7 @@ func TestLua(t *testing.T) {
 
 	t.Logf("%v\n%v", v1, v2)
 
-	err := verifyResults(v2, script2.returns)
+	err = verifyResults(v2, script2.returns)
 	if err != nil {
 		fmt.Println("Failed")
 		return

@@ -24,6 +24,18 @@ type luaScript struct {
 	returns  []string
 }
 
+/*
+@DoubleDeez#1060  usage:
+%lua [variables] return [return types]
+```lua
+script goes here
+```
+script must include lua tag, only returned values will be printed. returned values must align to type specified in command. Will run until either 500 instructions have gone by or 10MB of memory has been allocated.
+
+variables must be `name=value`, either int, float, bool, or string
+return types must be int/float/bool/string
+*/
+
 func Lua(api types.API, message *types.Message, args []string) {
 	if len(args) < 1 {
 		api.ReplyTo("Not enough arguments", message)
