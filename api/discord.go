@@ -112,7 +112,7 @@ func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
 
 func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	logging.Log("Reaction added")
-	message, err := session.ChannelMessage(reaction.ChannelID, reaction.ChannelID)
+	message, err := session.ChannelMessage(reaction.ChannelID, reaction.MessageID)
 	if err != nil {
 		logging.Err(err)
 		return
@@ -126,7 +126,7 @@ func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 
 func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
 	logging.Log("Reaction removed")
-	message, err := session.ChannelMessage(reaction.ChannelID, reaction.ChannelID)
+	message, err := session.ChannelMessage(reaction.ChannelID, reaction.MessageID)
 	if err != nil {
 		logging.Err(err)
 		return
@@ -134,7 +134,7 @@ func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRem
 	author := getUser(message.Author)
 	channel := getChannel(reaction.ChannelID)
 	if reaction.UserID != author.ID {
-		rate.RespecOther(author, channel, -rate.MentionValue)
+		rate.RespecOther(author, channel, -rate.OtherValue)
 	}
 }
 

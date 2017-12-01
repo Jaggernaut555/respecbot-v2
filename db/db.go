@@ -42,6 +42,7 @@ func Setup() error {
 }
 
 func Purge() error {
+	logging.Log(fmt.Sprintf("Deleting %v", dbDir))
 	return os.RemoveAll(dbDir)
 }
 

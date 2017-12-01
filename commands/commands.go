@@ -8,6 +8,7 @@ import (
 	"github.com/Jaggernaut555/respecbot-v2/cards"
 	"github.com/Jaggernaut555/respecbot-v2/db"
 	"github.com/Jaggernaut555/respecbot-v2/rate"
+	"github.com/Jaggernaut555/respecbot-v2/scripting"
 	"github.com/Jaggernaut555/respecbot-v2/types"
 	"github.com/Jaggernaut555/respecbot-v2/version"
 )
@@ -43,6 +44,7 @@ func init() {
 		"version":  CmdFuncHelpType{cmdVersion, "Outputs the current bot version", true, false},
 		"stats":    CmdFuncHelpType{cmdStats, "Displays leaderbaord, optionally use 'stats server' or 'stats global'", true, false},
 		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", true, false},
+		"lua":      CmdFuncHelpType{cmdLua, "Lua", true, false},
 	}
 }
 
@@ -58,18 +60,20 @@ func AddCommand(funcName string, f CmdFuncHelpType) error {
 }
 
 func HandleCommand(api types.API, message *types.Message) {
-	args := strings.Split(message.Content, " ")
+	args := strings.Fields(message.Content)
 	if len(args) == 0 {
 		return
 	}
-	CmdFuncHelpPair, ok := cmdFuncs[args[0]]
+	cmd := args[0]
+	args = args[1:]
+	CmdFuncHelpPair, ok := cmdFuncs[cmd]
 
 	if ok {
 		if !CmdFuncHelpPair.AllowedChannelOnly || message.Channel.Active {
 			CmdFuncHelpPair.Function(api, message, args)
 		}
 	} else {
-		var reply = fmt.Sprintf("I do not have command `%s`", args[0])
+		var reply = fmt.Sprintf("I do not have command `%s`", cmd)
 		api.ReplyTo(reply, message)
 	}
 }
@@ -118,10 +122,10 @@ func cmdNotHere(api types.API, message *types.Message, args []string) {
 func cmdStats(api types.API, message *types.Message, args []string) {
 	var leaders string
 	var losers []string
-	if len(args) < 2 {
+	if len(args) < 1 {
 		leaders, losers = rate.GetRespec(message.Channel, types.Local)
 	} else {
-		switch strings.ToLower(args[1]) {
+		switch strings.ToLower(args[0]) {
 		case "global":
 			leaders, losers = rate.GetRespec(message.Channel, types.Global)
 		case "server":
@@ -142,4 +146,8 @@ func cmdStats(api types.API, message *types.Message, args []string) {
 func cmdCard(api types.API, message *types.Message, args []string) {
 	card := cards.GenerateCard()
 	api.ReplyTo(card.String(), message)
+}
+
+func cmdLua(api types.API, message *types.Message, args []string) {
+	scripting.Lua(api, message, args)
 }
