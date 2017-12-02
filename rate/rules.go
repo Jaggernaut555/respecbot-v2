@@ -6,7 +6,6 @@ import (
 
 	"github.com/Jaggernaut555/respecbot-v2/db"
 	"github.com/Jaggernaut555/respecbot-v2/types"
-	"github.com/bwmarrin/discordgo"
 )
 
 type Rule func(*types.Message) int
@@ -19,9 +18,8 @@ const (
 )
 
 var (
-	rules              []Rule
-	letters            map[rune]string
-	channelLastMessage map[string]*discordgo.Message
+	rules   []Rule
+	letters map[rune]string
 )
 
 func init() {
@@ -32,7 +30,6 @@ func init() {
 	}
 
 	letters = make(map[rune]string)
-	channelLastMessage = make(map[string]*discordgo.Message)
 
 	var vowels = []rune{'a', 'e', 'i', 'o', 'u'}
 	var capVowels = []rune{'A', 'E', 'I', 'O', 'U'}

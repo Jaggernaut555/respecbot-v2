@@ -8,6 +8,9 @@ Add bot to a server by using [this link](https://www.youtube.com/watch?v=dQw4w9W
 Using packages:  
 http://github.com/bwmarrin/discordgo  
 http://github.com/go-sql-driver/mysql  
-http://github.com/go-xorm/xorm  
+https://github.com/jinzhu/gorm  
+https://github.com/Shopify/go-lua  
+https://github.com/Shopify/goluago  
+https://github.com/shibukawa/configdir  
 
 Note: This is a meme bot, do not use it seriously.  

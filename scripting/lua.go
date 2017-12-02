@@ -25,12 +25,14 @@ type luaScript struct {
 }
 
 /*
-@DoubleDeez#1060  usage:
+usage:
 %lua [variables] return [return types]
 ```lua
 script goes here
 ```
-script must include lua tag, only returned values will be printed. returned values must align to type specified in command. Will run until either 500 instructions have gone by or 10MB of memory has been allocated.
+script must include lua tag, only returned values will be printed. returned values must align to type specified in command. Will run until either 500 instructions have gone by or 10MB of memory has been allocated. io and os commands shouldn't be able to do anything.
+
+At least one return MUST be specified
 
 variables must be `name=value`, either int, float, bool, or string
 return types must be int/float/bool/string
@@ -52,11 +54,17 @@ func Lua(api types.API, message *types.Message, args []string) {
 		return
 	}
 
-	returns := callScript(script)
-
-	err := verifyResults(returns, script.returns)
+	returns, err := callScript(script)
 	if err != nil {
 		api.ReplyTo(err.Error(), message)
+		logging.Err(err)
+		return
+	}
+
+	err = verifyResults(returns, script.returns)
+	if err != nil {
+		api.ReplyTo(err.Error(), message)
+		logging.Err(err)
 		return
 	}
 
@@ -64,15 +72,21 @@ func Lua(api types.API, message *types.Message, args []string) {
 	api.ReplyTo(reply, message)
 }
 
-func callScript(script *luaScript) (returns []interface{}) {
+func callScript(script *luaScript) (returnValues []interface{}, err error) {
 	l := lua.NewState()
 
-	lua.BaseOpen(l)
-	//lua.PackageOpen(l)
-	lua.StringOpen(l)
-	lua.TableOpen(l)
-	lua.MathOpen(l)
-	lua.Bit32Open(l)
+	lua.Require(l, "_G", lua.BaseOpen, true)
+	l.Pop(1)
+	//lua.Require(l, "package", lua.PackageOpen, true)
+	//l.Pop(1)
+	lua.Require(l, "string", lua.StringOpen, true)
+	l.Pop(1)
+	lua.Require(l, "table", lua.TableOpen, true)
+	l.Pop(1)
+	lua.Require(l, "math", lua.MathOpen, true)
+	l.Pop(1)
+	lua.Require(l, "bit32", lua.Bit32Open, true)
+	l.Pop(1)
 
 	/*
 		Ability to save scripts to run later (with args too)
@@ -83,7 +97,7 @@ func callScript(script *luaScript) (returns []interface{}) {
 	*/
 
 	if err := lua.LoadString(l, script.script); err != nil {
-		logging.Err(err)
+		return nil, err
 	}
 
 	for k, v := range script.args {
@@ -110,15 +124,15 @@ func callScript(script *luaScript) (returns []interface{}) {
 	lua.SetDebugHook(l, f, lua.MaskCount, 10)
 
 	if err := l.ProtectedCall(0, len(script.returns), 0); err != nil {
-		logging.Err(err)
+		return nil, err
 	}
 
 	res, err := util.PullVarargs(l, l.Top()-len(script.returns)+1)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return res
+	return res, nil
 }
 
 func validReturns(args []string) bool {
@@ -157,6 +171,7 @@ func getScript(args []string) *luaScript {
 			end = k
 			endFound = true
 		}
+		// add an else { break }?
 	}
 	if !startFound || !endFound || (start >= end) || !returnFound || len(script.returns) == 0 {
 		return nil

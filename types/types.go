@@ -70,6 +70,12 @@ func (p PairList) Len() int           { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
+type RespecList []*Respec
+
+func (p RespecList) Len() int           { return len(p) }
+func (p RespecList) Less(i, j int) bool { return p[i].Respec < p[j].Respec }
+func (p RespecList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 type Scope uint
 
 const (

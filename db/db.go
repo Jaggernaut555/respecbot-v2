@@ -10,22 +10,35 @@ import (
 	"github.com/Jaggernaut555/respecbot-v2/types"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/shibukawa/configdir"
 )
 
 const (
-	dbFileName  = "respecbot.db"
-	projectName = "respecbot"
+	dbFileName  = "respecbot-v2.db"
+	projectName = "respecbot-v2"
+	vendorName  = "Jaggernaut555"
 )
 
 var db *gorm.DB
-var dbDir = filepath.FromSlash(os.TempDir() + "/" + projectName)
-var dbFile = filepath.FromSlash(dbDir + "/" + dbFileName)
+var fileDir *configdir.Config
+var dbFile string
 
 func Setup() error {
 	var err error
 
-	if err = os.MkdirAll(dbDir, 0600); err != nil {
+	configDir := configdir.New(vendorName, projectName)
+	fileDir = configDir.QueryCacheFolder()
+
+	dbFile = filepath.FromSlash(fileDir.Path + "/" + dbFileName)
+
+	if err = fileDir.MkdirAll(); err != nil {
 		return err
+	}
+
+	if !fileDir.Exists(dbFileName) {
+		if _, err = fileDir.Create(dbFileName); err != nil {
+			return err
+		}
 	}
 
 	db, err = gorm.Open("sqlite3", dbFile)
@@ -42,8 +55,10 @@ func Setup() error {
 }
 
 func Purge() error {
-	logging.Log(fmt.Sprintf("Deleting %v", dbDir))
-	return os.RemoveAll(dbDir)
+	configDir := configdir.New(vendorName, projectName)
+	fileDir = configDir.QueryCacheFolder()
+	logging.Log(fmt.Sprintf("Deleting %v", fileDir.Path))
+	return os.RemoveAll(fileDir.Path)
 }
 
 func createTables(d *gorm.DB) {
@@ -65,10 +80,15 @@ func createTables(d *gorm.DB) {
 }
 
 func GetTotalRespec() int {
-	var total []int
-	db.Model(&types.Respec{}).Select("sum(Respec)").Scan(&total)
+	var total []types.Respec
+	db.Model(&types.Respec{}).Select("sum(Respec) as respec").Scan(&total)
+	return total[0].Respec
+}
 
-	return total[0]
+func GetTotalServerRespec(server *types.Server) int {
+	var total []types.Respec
+	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Select("sum(Respec) as respec").Scan(&total)
+	return total[0].Respec
 }
 
 func LoadGlobalUsers() []*types.User {
@@ -77,6 +97,14 @@ func LoadGlobalUsers() []*types.User {
 		return nil
 	}
 	return users
+}
+
+func LoadServerRespec(server *types.Server) []*types.Respec {
+	var respec []*types.Respec
+	if db.Preload("User").Preload("Channel.Server", "key = ?", server.Key).Find(&respec).RecordNotFound() {
+		return nil
+	}
+	return respec
 }
 
 func LoadGlobalRespec() []*types.Respec {
@@ -107,7 +135,7 @@ func AddRespec(respec *types.Respec) {
 	db.Where(types.Respec{UserKey: respec.User.Key, ChannelKey: respec.Channel.Key}).Assign(types.Respec{Respec: respec.Respec}).FirstOrCreate(respec)
 }
 
-func LoadChannelUsersRespec(channel *types.Channel) types.PairList {
+func LoadChannelStats(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
 	if db.Preload("User").Find(&respec, types.Respec{ChannelKey: channel.Key}).RecordNotFound() {
@@ -121,10 +149,10 @@ func LoadChannelUsersRespec(channel *types.Channel) types.PairList {
 	return pairs
 }
 
-func LoadServerUsersRespec(channel *types.Channel) types.PairList {
+func LoadServerStats(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("user_key").Find(&respec).RecordNotFound() {
+	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
 		return nil
 	}
 
@@ -135,10 +163,24 @@ func LoadServerUsersRespec(channel *types.Channel) types.PairList {
 	return pairs
 }
 
-func LoadGlobalUsersRespec() types.PairList {
+func LoadGlobalStats() types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Group("user_key").Find(&respec).RecordNotFound() {
+	if db.Table("respecs a").Preload("User").Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
+		return nil
+	}
+
+	for _, v := range respec {
+		pairs = append(pairs, types.Pair{Key: v.User.Name, Value: v.Respec})
+	}
+
+	return pairs
+}
+
+func LoadServerUsersRespecs(channel *types.Channel) types.PairList {
+	var pairs types.PairList
+	var respec []*types.Respec
+	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
 		return nil
 	}
 

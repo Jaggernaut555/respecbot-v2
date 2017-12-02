@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -20,6 +21,12 @@ type discord struct {
 }
 
 const discordName = "discord"
+
+const (
+	supremeRoleName = "Supreme Ruler test"
+	rulingRoleName  = "Ruling Class test"
+	loserRoleName   = "Losers test"
+)
 
 func (d discord) String() string {
 	return discordName
@@ -77,16 +84,16 @@ func (d *discord) HandleCommand(message *types.Message) error {
 	return nil
 }
 
-func (d *discord) GetUser(UserID string) *types.User {
-	return nil
+func (d *discord) GetUser(userID string) *types.User {
+	return db.GetUser(userID, discordName)
 }
 
-func (d *discord) GetChannel(ChannelID string) *types.Channel {
-	return nil
+func (d *discord) GetChannel(channelID string) *types.Channel {
+	return db.GetChannel(channelID, discordName)
 }
 
-func (d *discord) GetServer(ServerID string) *types.Server {
-	return nil
+func (d *discord) GetServer(serverID string) *types.Server {
+	return db.GetServer(serverID, discordName)
 }
 
 func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
@@ -107,6 +114,7 @@ func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
 	if msg.Channel.Active {
 		rate.RespecMessage(msg)
 		db.NewMessage(msg)
+		checkRoleChange(msg.Channel.Server)
 	}
 }
 
@@ -121,6 +129,7 @@ func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	channel := getChannel(reaction.ChannelID)
 	if reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, rate.OtherValue)
+		checkRoleChange(channel.Server)
 	}
 }
 
@@ -135,7 +144,67 @@ func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRem
 	channel := getChannel(reaction.ChannelID)
 	if reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, -rate.OtherValue)
+		checkRoleChange(channel.Server)
 	}
+}
+
+//set new losers/ruling
+//check if top user or in top 50% of respec on that server
+//can any of this information be stored in db?
+//it's all very discord-specific, discord only db methods?
+func checkRoleChange(server *types.Server) {
+	var respecs types.RespecList
+	respecs = db.LoadServerRespec(server)
+	if len(respecs) == 0 {
+		return
+	}
+	total := db.GetTotalServerRespec(server)
+	runningTotal := 0
+	supremeID := getRoleID(server.ID, supremeRoleName)
+	rulingID := getRoleID(server.ID, rulingRoleName)
+	loserID := getRoleID(server.ID, loserRoleName)
+
+	sort.Sort(sort.Reverse(respecs))
+
+	for _, v := range respecs {
+		if v.Respec < 0 {
+			userAddRole(server.ID, v.User.ID, loserID)
+		} else {
+			userRemoveRole(server.ID, v.User.ID, loserID)
+		}
+		if runningTotal < total/2 {
+			userAddRole(server.ID, v.User.ID, rulingID)
+		} else {
+			userRemoveRole(server.ID, v.User.ID, rulingID)
+		}
+		userRemoveRole(server.ID, v.User.ID, supremeID)
+		runningTotal += v.Respec
+	}
+
+	userAddRole(server.ID, respecs[0].User.ID, supremeID)
+}
+
+func getRoleID(guildID, roleName string) (roleID string) {
+	roles, _ := session.GuildRoles(guildID)
+	var role *discordgo.Role
+	for _, v := range roles {
+		if v.Name == roleName {
+			role = v
+			break
+		}
+	}
+	if role == nil {
+		return ""
+	}
+	return role.ID
+}
+
+func userAddRole(serverID, userID, roleID string) {
+	session.GuildMemberRoleAdd(serverID, userID, roleID)
+}
+
+func userRemoveRole(serverID, userID, roleID string) {
+	session.GuildMemberRoleRemove(serverID, userID, roleID)
 }
 
 func createMessage(message *discordgo.Message) *types.Message {

@@ -21,12 +21,6 @@ const (
 	chatLimiter       = 166
 )
 
-const (
-	badChange  = iota
-	noChange   = iota
-	goodChange = iota
-)
-
 var (
 	totalRespec int
 )
@@ -53,17 +47,13 @@ func newRespec(user *types.User, channel *types.Channel, rating int) *types.Resp
 
 // AddRespec Add respec to the message, returns amount actually added
 func AddRespec(user *types.User, channel *types.Channel, rating int) int {
-	added, change := addRespecHelp(user, channel, rating)
-
-	if change == badChange {
-	} else if change == goodChange {
-	}
+	added := addRespecHelp(user, channel, rating)
 
 	logging.Log(fmt.Sprintf("%v %+d respec", user.Name, added))
 	return added
 }
 
-func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedRespec, polaritySwitch int) {
+func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedRespec int) {
 	// abs(userRating) / abs(totalRespec)
 	userRespec := db.LoadUserRespec(user, channel)
 	added := rating
@@ -90,25 +80,18 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 	totalRespec += added
 
 	db.AddRespec(newRespec(user, channel, userRespec+added))
-
-	if userRespec >= 0 && userRespec+added < 0 {
-		return added, badChange
-	} else if userRespec < 0 && userRespec+added >= 0 {
-		return added, goodChange
-	}
-
-	return added, noChange
+	return added
 }
 
 // RespecMessage evaluate messages
-func RespecMessage(message *types.Message) {
+func RespecMessage(message *types.Message) int {
 	numRespec := applyRules(message)
 
 	logging.Log(fmt.Sprintf("%v: %v", message.Author.Name, message.Content))
 
 	respecMentions(message)
 
-	AddRespec(message.Author, message.Channel, numRespec)
+	return AddRespec(message.Author, message.Channel, numRespec)
 }
 
 func respecMentions(message *types.Message) {
@@ -120,28 +103,29 @@ func respecMentions(message *types.Message) {
 
 // RespecOther Give respec by some other means, ie mentioning.
 // Something that a user has no control and will only be applicable every 5 minutes
-func RespecOther(user *types.User, channel *types.Channel, rating int) {
+func RespecOther(user *types.User, channel *types.Channel, rating int) (added int) {
 	now := time.Now()
 	last := db.GetLastRespecTime(user, channel)
 	if last != nil {
 		timeDelta := now.Sub(*last)
 		if timeDelta.Minutes() > 5 {
-			AddRespec(user, channel, rating)
+			return AddRespec(user, channel, rating)
 		}
 	} else {
-		AddRespec(user, channel, rating)
+		return AddRespec(user, channel, rating)
 	}
+	return 0
 }
 
 // get all da users in list
 func getRatingsLists(channel *types.Channel, scope types.Scope) (users types.PairList) {
 	switch scope {
 	case types.Local:
-		users = db.LoadChannelUsersRespec(channel)
+		users = db.LoadChannelStats(channel)
 	case types.Guild:
-		users = db.LoadServerUsersRespec(channel)
+		users = db.LoadServerStats(channel)
 	case types.Global:
-		users = db.LoadGlobalUsersRespec()
+		users = db.LoadGlobalStats()
 	}
 	return
 }
