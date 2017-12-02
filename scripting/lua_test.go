@@ -30,7 +30,7 @@ func TestLua(t *testing.T) {
 		return
 	}
 
-	v3 := callScript(&script3)
+	v3, _ := callScript(&script3)
 
 	fmt.Printf("%+v\n", script)
 
@@ -47,8 +47,8 @@ func TestLua(t *testing.T) {
 		fmt.Println(reflect.TypeOf(v))
 	}
 
-	v1 := callScript(&script)
-	v2 := callScript(&script2)
+	v1, _ := callScript(&script)
+	v2, _ := callScript(&script2)
 
 	t.Logf("%v\n%v", v1, v2)
 
