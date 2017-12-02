@@ -183,6 +183,9 @@ func getScript(args []string) *luaScript {
 
 // float/string/int/bool
 func verifyResults(returns []interface{}, types []string) error {
+	if len(returns) != len(types) {
+		return fmt.Errorf("Did not return correct amount")
+	}
 	for k, v := range returns {
 		switch v.(type) {
 		case float64:
@@ -201,7 +204,7 @@ func verifyResults(returns []interface{}, types []string) error {
 				return fmt.Errorf("Return value %v is not a(n) %v", v, types[k])
 			}
 		default:
-			return fmt.Errorf("Return value %v is not valid")
+			return fmt.Errorf("Returned value #%v is not valid", k+1)
 		}
 	}
 	return nil

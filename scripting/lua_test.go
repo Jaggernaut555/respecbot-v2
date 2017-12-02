@@ -2,7 +2,6 @@ package scripting
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 )
 
@@ -32,36 +31,34 @@ func TestLua(t *testing.T) {
 
 	v3, _ := callScript(&script3)
 
-	fmt.Printf("%+v\n", script)
-
 	err := verifyResults(v3, script3.returns)
 	if err != nil {
-		fmt.Println("Failed")
-	} else {
-		fmt.Println("Okay")
-	}
-
-	for k, v := range v3 {
-		fmt.Println(k)
-		fmt.Println(v)
-		fmt.Println(reflect.TypeOf(v))
+		t.Fail()
 	}
 
 	v1, _ := callScript(&script)
 	v2, _ := callScript(&script2)
 
-	t.Logf("%v\n%v", v1, v2)
+	err = verifyResults(v1, script.returns)
+	if err != nil {
+		t.Fail()
+	}
 
 	err = verifyResults(v2, script2.returns)
 	if err != nil {
-		fmt.Println("Failed")
-		return
+		t.Fail()
 	}
-	fmt.Println("Okay")
 
-	for k, v := range v2 {
-		fmt.Println(k)
-		fmt.Println(v)
-		fmt.Println(reflect.TypeOf(v))
+	var script4 luaScript
+	script4.argPairs = []argPair{}
+	script4.returns = []string{"int"}
+	script4.script = `return i`
+	script4.args = convertToInterface(script4.argPairs)
+
+	v4, _ := callScript(&script4)
+
+	err = verifyResults(v4, script4.returns)
+	if err == nil {
+		t.Fail()
 	}
 }
