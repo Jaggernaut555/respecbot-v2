@@ -158,7 +158,7 @@ func checkRoleChange(server *types.Server) {
 	if len(respecs) == 0 {
 		return
 	}
-	total := db.GetTotalServerRespec(server)
+	total := db.GetTotalPositiveServerRespec(server)
 	runningTotal := 0
 	supremeID := getRoleID(server.ID, supremeRoleName)
 	rulingID := getRoleID(server.ID, rulingRoleName)
