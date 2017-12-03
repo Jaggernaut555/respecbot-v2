@@ -60,7 +60,6 @@ func applyRules(message *types.Message) (respec int) {
 	return
 }
 
-// if a user is mentioned, respec them
 // if you use more than twice as many consonants as vowels, you lose respec
 // if you use one word only you lose respec
 // if you spam or barely talk fucc u
@@ -149,7 +148,7 @@ func respecTime(message *types.Message) (respec int) {
 		if timeDelta.Seconds() < 1.5 {
 			respec -= smallValue
 		} else if timeDelta.Hours() > 6 {
-			available := 5 //db.GetUserRespec(author)
+			available := db.GetUserLocalRespec(message.Author, message.Channel)
 
 			respec -= int(timeDelta.Hours()) * minValue
 

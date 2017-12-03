@@ -165,10 +165,11 @@ func getRoleID(guildID, roleName string) (roleID string) {
 func updateServerStatus(server *types.Server) {
 	top := db.GetServerTopUser(server)
 	ruling := db.GetServerRulingClass(server)
+	losers := db.GetServerLosers(server)
 	users := db.GetServerUsers(server)
 
 	for _, v := range users {
-		if isLoser(v, server) {
+		if v.UserIn(losers) {
 			makeUserLoser(server.ID, v.ID)
 			makeUserNotTop(server.ID, v.ID)
 			makeUserNotRuling(server.ID, v.ID)
@@ -177,6 +178,8 @@ func updateServerStatus(server *types.Server) {
 		makeUserNotLoser(server.ID, v.ID)
 		if v.ID == top.ID {
 			makeUserTop(server.ID, v.ID)
+			makeUserRuling(server.ID, v.ID)
+			continue
 		} else {
 			makeUserNotTop(server.ID, v.ID)
 		}
@@ -186,15 +189,6 @@ func updateServerStatus(server *types.Server) {
 			makeUserNotRuling(server.ID, v.ID)
 		}
 	}
-}
-
-// This function can go somewhere else maybe
-func isLoser(user *types.User, server *types.Server) bool {
-	respec := db.GetUserServerRespec(user, server)
-	if respec < 0 {
-		return true
-	}
-	return false
 }
 
 func makeUserLoser(guildID, userID string) {

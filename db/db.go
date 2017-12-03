@@ -184,6 +184,18 @@ func GetServerRulingClass(server *types.Server) []*types.User {
 	return users
 }
 
+func GetServerLosers(server *types.Server) []*types.User {
+	var respec []*types.Respec
+	var users []*types.User
+	if db.Preload("User").Preload("Channel.Server", "key = ?", server.Key).Where("respec < 0").Find(&respec).RecordNotFound() {
+		return nil
+	}
+	for _, v := range respec {
+		users = append(users, v.User)
+	}
+	return users
+}
+
 func GetLocalStats(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
