@@ -176,10 +176,8 @@ func updateServerStatus(server *types.Server) {
 		}
 		makeUserNotLoser(server.ID, v.ID)
 		if v.ID == top.ID {
-			fmt.Println(v.Name, "Is top")
 			makeUserTop(server.ID, v.ID)
 		} else {
-			fmt.Println(v.Name, "Is not top")
 			makeUserNotTop(server.ID, v.ID)
 		}
 		if v.UserIn(ruling) {
