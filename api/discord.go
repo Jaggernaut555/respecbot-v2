@@ -23,9 +23,9 @@ type discord struct {
 const discordName = "discord"
 
 const (
-	supremeRoleName = "Supreme Ruler test"
-	rulingRoleName  = "Ruling Class test"
-	loserRoleName   = "Losers test"
+	supremeRoleName = "Supreme Ruler"
+	rulingRoleName  = "Ruling Class"
+	loserRoleName   = "Losers"
 )
 
 func (d discord) String() string {
