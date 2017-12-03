@@ -91,6 +91,12 @@ func GetTotalServerRespec(server *types.Server) int {
 	return total[0].Respec
 }
 
+func GetTotalPositiveServerRespec(server *types.Server) int {
+	var total []types.Respec
+	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Select("sum(CASE WHEN Respec>0 THEN Respec ELSE 0 END) as respec").Scan(&total)
+	return total[0].Respec
+}
+
 func LoadGlobalUsers() []*types.User {
 	var users []*types.User
 	if db.Find(&users).RecordNotFound() {
