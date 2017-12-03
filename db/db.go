@@ -173,7 +173,11 @@ func GetServerRulingClass(server *types.Server) []*types.User {
 	var respec []*types.Respec
 	var users []*types.User
 	respec = GetServerRespec(server)
-	total := GetTotalServerRespec(server)
+	var totalTemp []types.Respec
+	if db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("respec >= 0").Select("sum(respec) as respec").Scan(&totalTemp).RecordNotFound() {
+		return nil
+	}
+	total := totalTemp[0].Respec
 	runningTotal := 0
 	for _, v := range respec {
 		if runningTotal < total/2 {

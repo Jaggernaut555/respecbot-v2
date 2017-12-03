@@ -44,12 +44,10 @@ func TestDB(t *testing.T) {
 	respec.ChannelKey = channel.Key
 	respec.User = user
 	respec.UserKey = user.Key
-	respec.Respec = -1
+	respec.Respec = 5
 	AddRespec(respec)
 
-	GetServerLosers(server)
-
-	users := GetServerUsers(server)
+	users := GetServerRulingClass(server)
 	if users == nil {
 		t.Fatalf("No users loaded")
 	}
