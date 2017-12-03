@@ -19,7 +19,7 @@ func TestDB(t *testing.T) {
 	logging.Log("SQLite file setup at", "test.db")
 
 	createTables(db)
-	db.LogMode(true)
+	//db.LogMode(true)
 
 	user := new(types.User)
 	user.ID = "userid"
@@ -47,7 +47,7 @@ func TestDB(t *testing.T) {
 	respec.Respec = 5
 	AddRespec(respec)
 
-	GetServerTop50(server)
+	GetServerRulingClass(server)
 
 	users := GetServerUsers(server)
 	if users == nil {
