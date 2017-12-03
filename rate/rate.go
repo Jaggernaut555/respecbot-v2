@@ -28,7 +28,7 @@ var (
 func InitRatings() {
 	rand.Seed(time.Now().Unix())
 
-	ratings := db.LoadGlobalUsers()
+	ratings := db.GetGlobalUsers()
 
 	logging.Log(fmt.Sprintf("loaded %v ratings", len(ratings)))
 
@@ -55,7 +55,7 @@ func AddRespec(user *types.User, channel *types.Channel, rating int) int {
 
 func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedRespec int) {
 	// abs(userRating) / abs(totalRespec)
-	userRespec := db.LoadUserRespec(user, channel)
+	userRespec := db.GetUserLocalRespec(user, channel)
 	added := rating
 
 	if userRespec != 0 && totalRespec != 0 {
@@ -80,6 +80,7 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 	totalRespec += added
 
 	db.AddRespec(newRespec(user, channel, userRespec+added))
+
 	return added
 }
 
@@ -121,11 +122,11 @@ func RespecOther(user *types.User, channel *types.Channel, rating int) (added in
 func getRatingsLists(channel *types.Channel, scope types.Scope) (users types.PairList) {
 	switch scope {
 	case types.Local:
-		users = db.LoadChannelStats(channel)
+		users = db.GetLocalStats(channel)
 	case types.Guild:
-		users = db.LoadServerStats(channel)
+		users = db.GetServerStats(channel.Server)
 	case types.Global:
-		users = db.LoadGlobalStats()
+		users = db.GetGlobalStats()
 	}
 	return
 }

@@ -83,3 +83,12 @@ const (
 	Guild  Scope = iota
 	Global Scope = iota
 )
+
+func (user *User) UserIn(users []*User) bool {
+	for _, v := range users {
+		if v.Key == user.Key {
+			return true
+		}
+	}
+	return false
+}

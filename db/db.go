@@ -91,7 +91,17 @@ func GetTotalServerRespec(server *types.Server) int {
 	return total[0].Respec
 }
 
-func LoadGlobalUsers() []*types.User {
+func GetServerUsers(server *types.Server) []*types.User {
+	var users []*types.User
+	var respec []*types.Respec
+	respec = GetServerRespec(server)
+	for _, v := range respec {
+		users = append(users, v.User)
+	}
+	return users
+}
+
+func GetGlobalUsers() []*types.User {
 	var users []*types.User
 	if db.Find(&users).RecordNotFound() {
 		return nil
@@ -99,28 +109,44 @@ func LoadGlobalUsers() []*types.User {
 	return users
 }
 
-func LoadServerRespec(server *types.Server) []*types.Respec {
+func GetLocalRespec(channel *types.Channel) []*types.Respec {
 	var respec []*types.Respec
-	if db.Preload("User").Preload("Channel.Server", "key = ?", server.Key).Find(&respec).RecordNotFound() {
+	if db.Preload("User").Order("respec DESC").Find(&respec, types.Respec{ChannelKey: channel.Key}).RecordNotFound() {
 		return nil
 	}
 	return respec
 }
 
-func LoadGlobalRespec() []*types.Respec {
+func GetServerRespec(server *types.Server) []*types.Respec {
 	var respec []*types.Respec
-	if db.Preload("User").Preload("Channel").Preload("Channel.Server").Find(&respec).RecordNotFound() {
+	if db.Table("respecs a").Preload("User").Preload("Channel.Server", "key = ?", server.Key).Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
 		return nil
 	}
 	return respec
 }
 
-func LoadUserRespec(user *types.User, channel *types.Channel) int {
+func GetGlobalRespec() []*types.Respec {
+	var respec []*types.Respec
+	if db.Table("respecs a").Preload("User").Preload("Channel.Server").Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
+		return nil
+	}
+	return respec
+}
+
+func GetUserLocalRespec(user *types.User, channel *types.Channel) int {
 	var respec types.Respec
 	if db.First(&respec, types.Respec{UserKey: user.Key, ChannelKey: channel.Key}).RecordNotFound() {
 		return 0
 	}
 	return respec.Respec
+}
+
+func GetUserServerRespec(user *types.User, server *types.Server) int {
+	var respec []*types.Respec
+	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Where("a.user_key = ?", user.Key).Find(&respec).RecordNotFound() {
+		return 0
+	}
+	return respec[0].Respec
 }
 
 func GetLastRespecTime(user *types.User, channel *types.Channel) *time.Time {
@@ -135,10 +161,34 @@ func AddRespec(respec *types.Respec) {
 	db.Where(types.Respec{UserKey: respec.User.Key, ChannelKey: respec.Channel.Key}).Assign(types.Respec{Respec: respec.Respec}).FirstOrCreate(respec)
 }
 
-func LoadChannelStats(channel *types.Channel) types.PairList {
+func GetServerTopUser(server *types.Server) *types.User {
+	var respec []*types.Respec
+	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", server.Key).Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).Limit(1).RecordNotFound() {
+		return nil
+	}
+	return respec[0].User
+}
+
+func GetServerRulingClass(server *types.Server) []*types.User {
+	var respec []*types.Respec
+	var users []*types.User
+	respec = GetServerRespec(server)
+	total := GetTotalServerRespec(server)
+	runningTotal := 0
+	for _, v := range respec {
+		if runningTotal < total/2 {
+			users = append(users, v.User)
+		}
+		runningTotal += v.Respec
+	}
+	return users
+}
+
+func GetLocalStats(channel *types.Channel) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Preload("User").Find(&respec, types.Respec{ChannelKey: channel.Key}).RecordNotFound() {
+	respec = GetLocalRespec(channel)
+	if respec == nil {
 		return nil
 	}
 
@@ -149,10 +199,11 @@ func LoadChannelStats(channel *types.Channel) types.PairList {
 	return pairs
 }
 
-func LoadServerStats(channel *types.Channel) types.PairList {
+func GetServerStats(server *types.Server) types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
+	respec = GetServerRespec(server)
+	if respec == nil {
 		return nil
 	}
 
@@ -163,24 +214,11 @@ func LoadServerStats(channel *types.Channel) types.PairList {
 	return pairs
 }
 
-func LoadGlobalStats() types.PairList {
+func GetGlobalStats() types.PairList {
 	var pairs types.PairList
 	var respec []*types.Respec
-	if db.Table("respecs a").Preload("User").Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
-		return nil
-	}
-
-	for _, v := range respec {
-		pairs = append(pairs, types.Pair{Key: v.User.Name, Value: v.Respec})
-	}
-
-	return pairs
-}
-
-func LoadServerUsersRespecs(channel *types.Channel) types.PairList {
-	var pairs types.PairList
-	var respec []*types.Respec
-	if db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", channel.Server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Find(&respec).RecordNotFound() {
+	respec = GetGlobalRespec()
+	if respec == nil {
 		return nil
 	}
 

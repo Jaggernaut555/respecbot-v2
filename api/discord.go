@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sort"
 	"strings"
 	"syscall"
 
@@ -114,7 +113,7 @@ func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
 	if msg.Channel.Active {
 		rate.RespecMessage(msg)
 		db.NewMessage(msg)
-		checkRoleChange(msg.Channel.Server)
+		updateServerStatus(msg.Channel.Server)
 	}
 }
 
@@ -129,7 +128,7 @@ func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	channel := getChannel(reaction.ChannelID)
 	if reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, rate.OtherValue)
-		checkRoleChange(channel.Server)
+		updateServerStatus(channel.Server)
 	}
 }
 
@@ -144,44 +143,8 @@ func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRem
 	channel := getChannel(reaction.ChannelID)
 	if reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, -rate.OtherValue)
-		checkRoleChange(channel.Server)
+		updateServerStatus(channel.Server)
 	}
-}
-
-//set new losers/ruling
-//check if top user or in top 50% of respec on that server
-//can any of this information be stored in db?
-//it's all very discord-specific, discord only db methods?
-func checkRoleChange(server *types.Server) {
-	var respecs types.RespecList
-	respecs = db.LoadServerRespec(server)
-	if len(respecs) == 0 {
-		return
-	}
-	total := db.GetTotalServerRespec(server)
-	runningTotal := 0
-	supremeID := getRoleID(server.ID, supremeRoleName)
-	rulingID := getRoleID(server.ID, rulingRoleName)
-	loserID := getRoleID(server.ID, loserRoleName)
-
-	sort.Sort(sort.Reverse(respecs))
-
-	for _, v := range respecs {
-		if v.Respec < 0 {
-			userAddRole(server.ID, v.User.ID, loserID)
-		} else {
-			userRemoveRole(server.ID, v.User.ID, loserID)
-		}
-		if runningTotal < total/2 {
-			userAddRole(server.ID, v.User.ID, rulingID)
-		} else {
-			userRemoveRole(server.ID, v.User.ID, rulingID)
-		}
-		userRemoveRole(server.ID, v.User.ID, supremeID)
-		runningTotal += v.Respec
-	}
-
-	userAddRole(server.ID, respecs[0].User.ID, supremeID)
 }
 
 func getRoleID(guildID, roleName string) (roleID string) {
@@ -197,6 +160,73 @@ func getRoleID(guildID, roleName string) (roleID string) {
 		return ""
 	}
 	return role.ID
+}
+
+func updateServerStatus(server *types.Server) {
+	top := db.GetServerTopUser(server)
+	ruling := db.GetServerRulingClass(server)
+	users := db.GetServerUsers(server)
+
+	for _, v := range users {
+		if isLoser(v, server) {
+			makeUserLoser(server.ID, v.ID)
+			makeUserNotTop(server.ID, v.ID)
+			makeUserNotRuling(server.ID, v.ID)
+			continue
+		}
+		makeUserNotLoser(server.ID, v.ID)
+		if v.ID == top.ID {
+			fmt.Println(v.Name, "Is top")
+			makeUserTop(server.ID, v.ID)
+		} else {
+			fmt.Println(v.Name, "Is not top")
+			makeUserNotTop(server.ID, v.ID)
+		}
+		if v.UserIn(ruling) {
+			makeUserRuling(server.ID, v.ID)
+		} else {
+			makeUserNotRuling(server.ID, v.ID)
+		}
+	}
+}
+
+// This function can go somewhere else maybe
+func isLoser(user *types.User, server *types.Server) bool {
+	respec := db.GetUserServerRespec(user, server)
+	if respec < 0 {
+		return true
+	}
+	return false
+}
+
+func makeUserLoser(guildID, userID string) {
+	roleID := getRoleID(guildID, loserRoleName)
+	userAddRole(guildID, userID, roleID)
+}
+
+func makeUserNotLoser(guildID, userID string) {
+	roleID := getRoleID(guildID, loserRoleName)
+	userRemoveRole(guildID, userID, roleID)
+}
+
+func makeUserTop(guildID, userID string) {
+	roleID := getRoleID(guildID, supremeRoleName)
+	userAddRole(guildID, userID, roleID)
+}
+
+func makeUserNotTop(guildID, userID string) {
+	roleID := getRoleID(guildID, supremeRoleName)
+	userRemoveRole(guildID, userID, roleID)
+}
+
+func makeUserRuling(guildID, userID string) {
+	roleID := getRoleID(guildID, rulingRoleName)
+	userAddRole(guildID, userID, roleID)
+}
+
+func makeUserNotRuling(guildID, userID string) {
+	roleID := getRoleID(guildID, rulingRoleName)
+	userRemoveRole(guildID, userID, roleID)
 }
 
 func userAddRole(serverID, userID, roleID string) {
