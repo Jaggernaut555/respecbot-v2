@@ -97,7 +97,12 @@ func RespecMessage(message *types.Message) int {
 
 func respecMentions(message *types.Message) {
 	for _, v := range message.Mentions {
-		fmt.Printf("%v Mentioned %v in channel %v\n", message.Author.Name, v.Name, message.ChannelKey)
+		if v.ID == message.Author.ID {
+			logging.Log(fmt.Sprintf("%v mentioned themself in channel %v", message.Author, message.ChannelKey))
+			AddRespec(message.Author, message.Channel, -MentionValue)
+			continue
+		}
+		logging.Log(fmt.Sprintf("%v Mentioned %v in channel %v\n", message.Author.Name, v.Name, message.ChannelKey))
 		RespecOther(v, message.Channel, MentionValue)
 	}
 }

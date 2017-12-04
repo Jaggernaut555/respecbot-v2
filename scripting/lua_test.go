@@ -1,7 +1,6 @@
 package scripting
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -25,8 +24,7 @@ func TestLua(t *testing.T) {
 	script3.args = convertToInterface(script3.argPairs)
 
 	if !validReturns(script3.returns) {
-		fmt.Println("Failed returns")
-		return
+		t.Fatalf("Failed returns")
 	}
 
 	v3, _ := callScript(&script3)
