@@ -88,22 +88,22 @@ func createTables(d *gorm.DB) {
 
 func GetTotalRespec() int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Where("Respec > 0").Select("sum(Respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Where("respec > 0").Select("sum(respec) as respec").Scan(&total)
 	return total[0].Respec
 }
 
 func GetTotalServerRespec(server *types.Server) int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("Respec > 0").Select("sum(Respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("respec > 0").Select("sum(Respec) as respec").Scan(&total)
 	return total[0].Respec
 }
 
 func GetServerRespecCap(server *types.Server) int {
 	var respec = GetTotalServerRespec(server)
-	if respec/4 < 100 {
+	if respec*2/3 < 100 {
 		return 100
 	}
-	return respec / 4
+	return respec * 2 / 3
 }
 
 func GetServerUsers(server *types.Server) []*types.User {
@@ -336,9 +336,9 @@ func GetLastMessage(user *types.User, channel *types.Channel) *types.Message {
 	return &message
 }
 
-func GetLastFiveMessages(user *types.User, channel *types.Channel) []*types.Message {
+func GetUserLastMessages(user *types.User, channel *types.Channel, amount int) []*types.Message {
 	var messages []*types.Message
-	if db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time desc").Limit(5).Find(&messages).RecordNotFound() {
+	if db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time desc").Limit(amount).Find(&messages).RecordNotFound() {
 		return nil
 	}
 	return messages
@@ -350,4 +350,32 @@ func GetChannelLastMessage(channel *types.Channel) *types.Message {
 		return nil
 	}
 	return &message
+}
+
+func IsMessageUnique(message *types.Message) bool {
+	var messages []*types.Message
+	if db.Where("user_key = ? AND channel_key = ?", message.Author.Key, message.Channel.Key).Where("content LIKE ?", message.Content).Order("time desc").Limit(25).Find(&messages).RecordNotFound() {
+		return true
+	}
+	if len(messages) == 0 {
+		return true
+	}
+	return false
+}
+
+func IsMultiPosting(message *types.Message) bool {
+	var messages []*types.Message
+	if db.Where("channel_key = ?", message.Channel.Key).Order("time desc").Limit(3).Find(&messages).RecordNotFound() {
+		return false
+	}
+	count := 0
+	for _, v := range messages {
+		if v.UserKey == message.UserKey {
+			count++
+		}
+	}
+	if count == 3 {
+		return true
+	}
+	return false
 }
