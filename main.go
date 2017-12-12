@@ -15,6 +15,7 @@ import (
 var (
 	token   string
 	apiName string
+	dbName  string
 )
 
 var (
@@ -24,7 +25,8 @@ var (
 func init() {
 	flag.StringVar(&apiName, "api", "", "description")
 	flag.StringVar(&token, "t", "", "Authentication token")
-	purge := flag.Bool("purge", false, "Use this flag to purge the database. Must be used with -p")
+	flag.StringVar(&dbName, "db", "respecbot-v2.db", "Name of the database file to be used")
+	purge := flag.Bool("purge", false, "Use this flag to remove all user data associated with this program")
 
 	flag.Parse()
 
@@ -38,7 +40,7 @@ func init() {
 
 	logging.Log("TIME TO RESPEC")
 
-	err := db.Setup()
+	err := db.Setup(dbName)
 	if err != nil {
 		logging.Err(err)
 		os.Exit(1)
