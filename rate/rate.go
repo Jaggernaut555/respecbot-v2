@@ -18,12 +18,9 @@ const (
 	CorrectUsageValue = 2
 	MentionValue      = 3
 	OtherValue        = 2
-	chatLimiter       = 166
 )
 
-var (
-	totalRespec int
-)
+var ()
 
 func InitRatings() {
 	rand.Seed(time.Now().Unix())
@@ -31,8 +28,6 @@ func InitRatings() {
 	ratings := db.GetGlobalUsers()
 
 	logging.Log(fmt.Sprintf("loaded %v ratings", len(ratings)))
-
-	totalRespec = db.GetTotalRespec()
 }
 
 func newRespec(user *types.User, channel *types.Channel, rating int) *types.Respec {
@@ -57,11 +52,12 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 	// abs(userRating) / abs(totalRespec)
 	userRespec := db.GetUserLocalRespec(user, channel)
 	added := rating
+	totalRespec := db.GetTotalServerRespec(channel.Server)
 
 	if userRespec != 0 && totalRespec != 0 {
 		temp := math.Abs(float64(userRespec)) * math.Log(1+math.Abs(float64(userRespec))) / math.Abs(float64(totalRespec)) * 0.65
 
-		if math.Abs(float64(userRespec)) > chatLimiter {
+		if math.Abs(float64(userRespec)) > float64(db.GetServerRespecCap(channel.Server)) {
 			if userRespec > 0 && added < 0 {
 				temp = 0.01
 			} else if userRespec < 0 && added > 0 {

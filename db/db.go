@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	dbFileName  = "respecbot-v2.db"
 	projectName = "respecbot-v2"
 	vendorName  = "Jaggernaut555"
 )
@@ -23,7 +22,7 @@ var db *gorm.DB
 var fileDir *configdir.Config
 var dbFile string
 
-func Setup() error {
+func Setup(dbFileName string) error {
 	var err error
 
 	configDir := configdir.New(vendorName, projectName)
@@ -54,6 +53,14 @@ func Setup() error {
 	return err
 }
 
+func DeleteDB(dbFileName string) error {
+	configDir := configdir.New(vendorName, projectName)
+	fileDir = configDir.QueryCacheFolder()
+	dbFile = filepath.FromSlash(fileDir.Path + "/" + dbFileName)
+	logging.Log(fmt.Sprintf("Deleting %v", dbFile))
+	return os.Remove(dbFile)
+}
+
 func Purge() error {
 	configDir := configdir.New(vendorName, projectName)
 	fileDir = configDir.QueryCacheFolder()
@@ -81,14 +88,22 @@ func createTables(d *gorm.DB) {
 
 func GetTotalRespec() int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Select("sum(Respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Where("Respec > 0").Select("sum(Respec) as respec").Scan(&total)
 	return total[0].Respec
 }
 
 func GetTotalServerRespec(server *types.Server) int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Select("sum(Respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("Respec > 0").Select("sum(Respec) as respec").Scan(&total)
 	return total[0].Respec
+}
+
+func GetServerRespecCap(server *types.Server) int {
+	var respec = GetTotalServerRespec(server)
+	if respec/4 < 100 {
+		return 100
+	}
+	return respec / 4
 }
 
 func GetServerUsers(server *types.Server) []*types.User {

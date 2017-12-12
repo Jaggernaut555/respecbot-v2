@@ -1,25 +1,20 @@
 package db
 
 import (
-	"os"
 	"testing"
 
-	"github.com/Jaggernaut555/respecbot-v2/logging"
 	"github.com/Jaggernaut555/respecbot-v2/types"
-	"github.com/jinzhu/gorm"
 )
 
 func TestDB(t *testing.T) {
 	var err error
-	os.Remove("test.db")
-	db, err = gorm.Open("sqlite3", "test.db")
+
+	err = Setup("test.db")
 	if err != nil {
 		t.Fatal(err)
 	}
-	logging.Log("SQLite file setup at", "test.db")
 
-	createTables(db)
-	db.LogMode(true)
+	//db.LogMode(true)
 
 	user := new(types.User)
 	user.ID = "userid"
@@ -44,7 +39,7 @@ func TestDB(t *testing.T) {
 	respec.ChannelKey = channel.Key
 	respec.User = user
 	respec.UserKey = user.Key
-	respec.Respec = 5
+	respec.Respec = 440
 	AddRespec(respec)
 
 	users := GetServerRulingClass(server)
@@ -52,8 +47,13 @@ func TestDB(t *testing.T) {
 		t.Fatalf("No users loaded")
 	}
 
+	top := GetServerRespecCap(server)
+	if top != 110 {
+		t.Error("Respec Cap not working")
+	}
+
 	db.Close()
-	err = os.Remove("test.db")
+	err = DeleteDB("test.db")
 	if err != nil {
 		t.Fatal(err)
 	}
