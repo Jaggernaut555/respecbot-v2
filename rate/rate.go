@@ -55,7 +55,7 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 	totalRespec := db.GetTotalServerRespec(channel.Server)
 
 	if userRespec != 0 && totalRespec != 0 {
-		temp := math.Abs(float64(userRespec)) * math.Log(1+math.Abs(float64(userRespec))) / math.Abs(float64(totalRespec)) * 0.65
+		temp := math.Abs(float64(userRespec)) * math.Log(1+math.Abs(float64(userRespec))) / float64(totalRespec) * 0.65
 
 		if math.Abs(float64(userRespec)) > float64(db.GetServerRespecCap(channel.Server)) {
 			if userRespec > 0 && added < 0 {
@@ -72,8 +72,6 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 			added = -added
 		}
 	}
-
-	totalRespec += added
 
 	db.AddRespec(newRespec(user, channel, userRespec+added))
 
