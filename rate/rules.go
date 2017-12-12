@@ -57,7 +57,16 @@ func applyRules(message *types.Message) (respec int) {
 	for _, v := range rules {
 		respec += v(message)
 	}
+	respec = multiPosting(message, respec)
 	return
+}
+
+// Posting more than 3 messages in a row no longer allows respec gain
+func multiPosting(message *types.Message, respec int) int {
+	if db.IsMultiPosting(message) && respec > 0 {
+		return 0
+	}
+	return respec
 }
 
 // if you use more than twice as many consonants as vowels, you lose respec
@@ -74,7 +83,7 @@ func lastPost(message *types.Message) (respec int) {
 			respec += smallValue
 		}
 
-		if message.Content == msg.Content {
+		if !db.IsMessageUnique(message) {
 			respec -= bigValue
 		}
 	} else {
@@ -122,7 +131,7 @@ func respecLetters(message *types.Message) (respec int) {
 	}
 	if vowelCount > consonantCount {
 		respec += minValue
-	} else if float64(vowelCount) < float64(consonantCount)*0.45 {
+	} else if float64(vowelCount) < float64(consonantCount)*0.4 {
 		respec -= smallValue
 	}
 	if otherCount > totalLetters.Int64() {
