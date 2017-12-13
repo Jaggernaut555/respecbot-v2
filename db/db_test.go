@@ -16,7 +16,7 @@ func TestDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	//db.LogMode(true)
+	db.LogMode(true)
 
 	user := new(types.User)
 	user.ID = "userid"
@@ -50,8 +50,8 @@ func TestDB(t *testing.T) {
 	}
 
 	top := GetServerRespecCap(server)
-	if top != 200 {
-		t.Error("Respec Cap not working")
+	if top != 131 {
+		t.Errorf("Respec Cap not working. Expected %v, got %v", 131, top)
 	}
 
 	total := GetTotalRespec()

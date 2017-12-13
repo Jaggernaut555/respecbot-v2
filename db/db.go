@@ -94,16 +94,16 @@ func GetTotalRespec() int {
 
 func GetTotalServerRespec(server *types.Server) int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("respec > 0").Select("sum(Respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("respec > 0").Select("sum(respec) as respec").Scan(&total)
 	return total[0].Respec
 }
 
 func GetServerRespecCap(server *types.Server) int {
 	var respec = GetTotalServerRespec(server)
-	if respec*2/3 < 100 {
+	if respec*7/16 < 100 {
 		return 100
 	}
-	return respec * 2 / 3
+	return respec * 7 / 16
 }
 
 func GetServerUsers(server *types.Server) []*types.User {
@@ -126,7 +126,7 @@ func GetGlobalUsers() []*types.User {
 
 func GetLocalRespec(channel *types.Channel) []*types.Respec {
 	var respec []*types.Respec
-	if db.Preload("User").Order("respec DESC").Find(&respec, types.Respec{ChannelKey: channel.Key}).RecordNotFound() {
+	if db.Preload("User").Preload("Channel", "key = ?", channel.Key).Preload("Channel.Server").Order("respec DESC").Find(&respec).RecordNotFound() {
 		return nil
 	}
 	return respec
@@ -197,6 +197,8 @@ func GetServerRulingClass(server *types.Server) []*types.User {
 	for _, v := range respec {
 		if runningTotal < total/2 {
 			users = append(users, v.User)
+		} else {
+			break
 		}
 		runningTotal += v.Respec
 	}
@@ -354,10 +356,7 @@ func GetChannelLastMessage(channel *types.Channel) *types.Message {
 
 func IsMessageUnique(message *types.Message) bool {
 	var messages []*types.Message
-	if db.Where("user_key = ? AND channel_key = ?", message.Author.Key, message.Channel.Key).Where("content LIKE ?", message.Content).Order("time desc").Limit(25).Find(&messages).RecordNotFound() {
-		return true
-	}
-	if len(messages) == 0 {
+	if err := db.Table("messages a").Select("a.*").Joins("INNER JOIN (?) as y ON a.key = y.key", db.Table("messages c").Select("c.*").Where("c.channel_key = ? AND c.user_key = ?", message.Channel.Key, message.Author.Key).Order("time DESC").Limit(25).QueryExpr()).Joins("INNER JOIN (?) as x ON a.key = x.key", db.Table("messages b").Select("b.*").Where("b.content LIKE ?", message.Content).QueryExpr()).Find(&messages).Error; err != nil || len(messages) == 0 {
 		return true
 	}
 	return false
@@ -365,17 +364,8 @@ func IsMessageUnique(message *types.Message) bool {
 
 func IsMultiPosting(message *types.Message) bool {
 	var messages []*types.Message
-	if db.Where("channel_key = ?", message.Channel.Key).Order("time desc").Limit(3).Find(&messages).RecordNotFound() {
+	if err := db.Table("messages a").Select("a.*").Joins("INNER JOIN (?) as x ON a.key = x.key", db.Table("messages b").Select("b.*").Where("b.channel_key = ?", message.ChannelKey).Order("time DESC").Limit(3).QueryExpr()).Where("a.user_key = ?", message.Author.Key).Find(&messages).Error; err != nil || len(messages) != 3 {
 		return false
 	}
-	count := 0
-	for _, v := range messages {
-		if v.UserKey == message.UserKey {
-			count++
-		}
-	}
-	if count == 3 {
-		return true
-	}
-	return false
+	return true
 }
