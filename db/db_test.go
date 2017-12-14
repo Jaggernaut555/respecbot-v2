@@ -103,55 +103,6 @@ func TestDB(t *testing.T) {
 		t.Error("Message should be unique")
 	}
 
-	total := GetTotalRespec()
-	if total != 300 {
-		t.Error("GetTotal not working")
-	}
-	total = GetTotalServerRespec(server)
-	if total != 300 {
-		t.Error("GetTotalServer not working")
-	}
-
-	message := new(types.Message)
-	message2 := new(types.Message)
-	message3 := new(types.Message)
-	message.Author = user
-	message.UserKey = user.Key
-	message.Channel = channel
-	message.ChannelKey = channel.Key
-	message.APIID = "test"
-	message.ID = "messageid"
-	message.Content = "message content"
-	message.Time = time.Now()
-	*message2 = *message
-	message2.Content = "message2 content"
-	*message3 = *message
-	message3.Content = "message3 content"
-	NewMessage(message)
-	NewMessage(message2)
-
-	b = IsMultiPosting(message)
-	if b == true {
-		t.Error("User is not multi posting")
-	}
-
-	NewMessage(message3)
-
-	b = IsMultiPosting(message)
-	if b == false {
-		t.Error("User is multi posting")
-	}
-
-	b = IsMessageUnique(message)
-	if b == true {
-		t.Error("Message should not be unique")
-	}
-	message.Content = "New content"
-	b = IsMessageUnique(message)
-	if b == false {
-		t.Error("Message should be unique")
-	}
-
 	db.Close()
 	err = DeleteDB("test.db")
 	if err != nil {
