@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/Jaggernaut555/respecbot-v2/api"
@@ -54,7 +55,6 @@ func main() {
 
 	apiInstance, err = selectAPI()
 	if err != nil {
-		logging.Log("No API Selected")
 		logging.Err(err)
 		os.Exit(1)
 	}
@@ -64,10 +64,12 @@ func main() {
 	if err != nil {
 		logging.Log("API could not set up")
 		logging.Err(err)
+		os.Exit(1)
 	}
 	err = apiInstance.Listen()
 	if err != nil {
 		logging.Err(err)
+		os.Exit(1)
 	}
 }
 
@@ -76,7 +78,6 @@ func selectAPI() (types.API, error) {
 	case "discord":
 		return api.NewDiscord(token)
 	default:
-		logging.Log("No valid api specified")
-		return nil, nil
+		return nil, fmt.Errorf("%v is not a valid api", apiName)
 	}
 }
