@@ -42,6 +42,9 @@ func newRespec(user *types.User, channel *types.Channel, rating int) *types.Resp
 
 // AddRespec Add respec to the message, returns amount actually added
 func AddRespec(user *types.User, channel *types.Channel, rating int) int {
+	if user.Bot {
+		return 0
+	}
 	added := addRespecHelp(user, channel, rating)
 
 	logging.Log(fmt.Sprintf("%v %+d respec", user.Name, added))

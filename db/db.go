@@ -103,7 +103,7 @@ func GetTotalRespec() int {
 // GetTotalServerRespec Gets the total positive respec in the given server
 func GetTotalServerRespec(server *types.Server) int {
 	var total []types.Respec
-	db.Model(&types.Respec{}).Preload("Channel.Server", "key = ?", server.Key).Where("respec > 0").Select("sum(respec) as respec").Scan(&total)
+	db.Model(&types.Respec{}).Preload("Channel.Server").Where("respec > 0 AND channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Select("sum(respec) as respec").Scan(&total)
 	if len(total) < 1 {
 		return 0
 	}
@@ -142,7 +142,7 @@ func GetGlobalUsers() []*types.User {
 // GetLocalRespec Gets the respec of every user in the given channel
 func GetLocalRespec(channel *types.Channel) []*types.Respec {
 	var respec []*types.Respec
-	if err := db.Preload("User").Preload("Channel", "key = ?", channel.Key).Preload("Channel.Server").Order("respec DESC").Find(&respec).Error; err != nil {
+	if err := db.Preload("User").Preload("Channel").Preload("Channel.Server").Order("respec DESC").Where("channel_key = ?", channel.Key).Find(&respec).Error; err != nil {
 		return nil
 	}
 	return respec
@@ -151,7 +151,7 @@ func GetLocalRespec(channel *types.Channel) []*types.Respec {
 // GetServerRespec Gets the respec of every user in the given server
 func GetServerRespec(server *types.Server) []*types.Respec {
 	var respec []*types.Respec
-	if err := db.Table("respecs a").Preload("User").Preload("Channel.Server", "key = ?", server.Key).Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).Error; err != nil {
+	if err := db.Preload("User").Preload("Channel").Preload("Channel.Server").Group("user_key").Order("respec DESC").Select("key, user_key,channel_key,updated_at, sum(respec) as respec").Where("channel_key IN (?)", db.Table("channels").Where("server_key = ?", server.Key).Select("key").QueryExpr()).Find(&respec).Error; err != nil {
 		return nil
 	}
 	return respec
@@ -160,7 +160,7 @@ func GetServerRespec(server *types.Server) []*types.Respec {
 // GetGlobalRespec Gets the respec of every user in every server
 func GetGlobalRespec() []*types.Respec {
 	var respec []*types.Respec
-	if err := db.Table("respecs a").Preload("User").Preload("Channel.Server").Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).Error; err != nil {
+	if err := db.Preload("User").Preload("Channel").Preload("Channel.Server").Group("user_key").Order("respec DESC").Select("key, user_key,channel_key,updated_at, sum(respec) as respec").Find(&respec).Error; err != nil {
 		return nil
 	}
 	return respec
@@ -169,7 +169,7 @@ func GetGlobalRespec() []*types.Respec {
 // GetUserLocalRespec Gets the total respec of a given user in the given channel
 func GetUserLocalRespec(user *types.User, channel *types.Channel) int {
 	var respec types.Respec
-	if err := db.First(&respec, types.Respec{UserKey: user.Key, ChannelKey: channel.Key}).Error; err != nil {
+	if err := db.Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).First(&respec).Error; err != nil {
 		return 0
 	}
 	return respec.Respec
@@ -178,7 +178,7 @@ func GetUserLocalRespec(user *types.User, channel *types.Channel) int {
 // GetUserServerRespec Gets the total respec of a given user in the given server
 func GetUserServerRespec(user *types.User, server *types.Server) int {
 	var respec []*types.Respec
-	if err := db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", server.Key).Group("a.user_key").Select("a.user_key, sum(a.respec) as respec").Where("a.user_key = ?", user.Key).Find(&respec).Error; err != nil {
+	if err := db.Group("user_key").Select("user_key, sum(respec) as respec").Where("user_key = ? AND channel_key IN (?)", user.Key, db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Find(&respec).Error; err != nil {
 		return 0
 	}
 	return respec[0].Respec
@@ -187,7 +187,7 @@ func GetUserServerRespec(user *types.User, server *types.Server) int {
 // GetLastRespecTime Get's the time.Time of the last time a given users respec was updated in the given channel
 func GetLastRespecTime(user *types.User, channel *types.Channel) *time.Time {
 	var respec types.Respec
-	if err := db.First(&respec, types.Respec{UserKey: user.Key, ChannelKey: channel.Key}).Error; err != nil {
+	if err := db.Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).First(&respec).Error; err != nil {
 		return nil
 	}
 	return &respec.UpdatedAt
@@ -200,11 +200,11 @@ func AddRespec(respec *types.Respec) {
 
 // GetServerTopUser Gets the top user in the given server
 func GetServerTopUser(server *types.Server) *types.User {
-	var respec []*types.Respec
-	if err := db.Table("respecs a").Preload("User").Preload("Channel", "server_key = ?", server.Key).Group("a.user_key").Order("respec DESC").Select("a.user_key, sum(a.respec) as respec").Find(&respec).Limit(1).Error; err != nil {
+	var respec types.Respec
+	if err := db.Preload("User").Group("user_key").Order("respec DESC").Select("user_key, sum(respec) as respec").Where("channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).First(&respec).Error; err != nil {
 		return nil
 	}
-	return respec[0].User
+	return respec.User
 }
 
 // GetServerRulingClass Gets a list of users who hold the top 50% of respec in the given server
@@ -229,7 +229,7 @@ func GetServerRulingClass(server *types.Server) []*types.User {
 func GetServerLosers(server *types.Server) []*types.User {
 	var respec []*types.Respec
 	var users []*types.User
-	if err := db.Preload("User").Preload("Channel.Server", "key = ?", server.Key).Where("respec < 0").Find(&respec).Error; err != nil {
+	if err := db.Preload("User").Where("respec < 0 AND channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Find(&respec).Error; err != nil {
 		return nil
 	}
 	for _, v := range respec {
@@ -336,7 +336,7 @@ func GetChannel(channelID, APIID string) *types.Channel {
 
 // UpdateChannel Updates and channel information to the stored channel in database
 func UpdateChannel(channel *types.Channel) {
-	db.Save(channel)
+	db.Model(&channel).Update("active", channel.Active)
 }
 
 // NewServer Insert the server into the database. Fills the 'Key' field
@@ -365,7 +365,7 @@ func NewMessage(message *types.Message) {
 // GetLastMessage Get the last message by the given user posted in the given channel
 func GetLastMessage(user *types.User, channel *types.Channel) *types.Message {
 	var message types.Message
-	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time desc").First(&message).Error; err != nil {
+	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time DESC").First(&message).Error; err != nil {
 		return nil
 	}
 	return &message
@@ -374,7 +374,7 @@ func GetLastMessage(user *types.User, channel *types.Channel) *types.Message {
 // GetUserLastMessages Get the last 'amount' messages by the given user posted in the given channel
 func GetUserLastMessages(user *types.User, channel *types.Channel, amount int) []*types.Message {
 	var messages []*types.Message
-	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time desc").Limit(amount).Find(&messages).Error; err != nil {
+	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("user_key = ? AND channel_key = ?", user.Key, channel.Key).Order("time DESC").Limit(amount).Find(&messages).Error; err != nil {
 		return nil
 	}
 	return messages
@@ -383,7 +383,7 @@ func GetUserLastMessages(user *types.User, channel *types.Channel, amount int) [
 // GetChannelLastMessage Get the last message posted in the given channel
 func GetChannelLastMessage(channel *types.Channel) *types.Message {
 	var message types.Message
-	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("channel_key = ?", channel.Key).Order("time desc").First(&message).Error; err != nil {
+	if err := db.Preload("Channel").Preload("Channel.Server").Preload("Author").Where("channel_key = ?", channel.Key).Order("time DESC").First(&message).Error; err != nil {
 		return nil
 	}
 	return &message

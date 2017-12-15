@@ -1,8 +1,11 @@
 package db
 
 import (
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/Jaggernaut555/respecbot-v2/logging"
 
 	"github.com/Jaggernaut555/respecbot-v2/types"
 )
@@ -16,7 +19,7 @@ func TestDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	db.LogMode(true)
+	//db.LogMode(true)
 
 	user := new(types.User)
 	user.ID = "userid"
@@ -44,6 +47,17 @@ func TestDB(t *testing.T) {
 	respec.Respec = 300
 	AddRespec(respec)
 
+	message := new(types.Message)
+	message.Author = user
+	message.UserKey = user.Key
+	message.Channel = channel
+	message.ChannelKey = channel.Key
+	message.APIID = "test"
+	message.ID = "messageid"
+	message.Content = "message content"
+	message.Time = time.Now()
+	NewMessage(message)
+
 	users := GetServerRulingClass(server)
 	if users == nil {
 		t.Error("No users loaded")
@@ -62,23 +76,84 @@ func TestDB(t *testing.T) {
 	if total != 300 {
 		t.Error("GetTotalServer not working")
 	}
+	total = GetUserLocalRespec(user, channel)
+	if total != 300 {
+		t.Error("GetUserLocalRespec not working")
+	}
 
-	message := new(types.Message)
+	user2 := new(types.User)
+	user2.ID = "userid2"
+	user2.Name = "username2"
+	user2.APIID = "test"
+	NewUser(user2)
+	server2 := new(types.Server)
+	server2.ID = "serverid2"
+	server2.APIID = "test"
+	NewServer(server2)
+	channel2 := new(types.Channel)
+	channel2.ID = "chanid2"
+	channel2.APIID = "test"
+	channel2.Server = server
+	channel2.ServerKey = server.Key
+	NewChannel(channel2)
+	respec2 := new(types.Respec)
+	respec2.Channel = channel2
+	respec2.User = user2
+	respec2.UserKey = user2.Key
+	respec2.Respec = -50
+	AddRespec(respec2)
+
+	GetLocalRespec(channel)
+
+	GetServerRespec(server)
+
+	GetGlobalRespec()
+
+	GetUserServerRespec(user, server)
+
+	GetLastRespecTime(user, channel)
+
+	GetServerTopUser(server)
+
+	GetServerRulingClass(server)
+
+	GetServerLosers(server)
+
+	GetLocalStats(channel)
+
+	GetServerStats(server)
+
+	GetGlobalStats()
+
+	GetUser("userid", "test")
+
+	GetChannel("chanid", "test")
+
+	channel.Active = true
+	UpdateChannel(channel)
+
+	GetServer("serverid", "test")
+
+	GetLastMessage(user, channel)
+
+	a := GetUserLastMessages(user, channel, 3)
+
+	c := GetChannelLastMessage(channel)
+
+	for _, v := range a {
+		logging.Log(fmt.Sprintf("%+v", v))
+	}
+
+	logging.Log(fmt.Sprintf("%+v", c))
+
 	message2 := new(types.Message)
 	message3 := new(types.Message)
-	message.Author = user
-	message.UserKey = user.Key
-	message.Channel = channel
-	message.ChannelKey = channel.Key
-	message.APIID = "test"
-	message.ID = "messageid"
-	message.Content = "message content"
-	message.Time = time.Now()
 	*message2 = *message
+	message2.Key = 0
 	message2.Content = "message2 content"
 	*message3 = *message
+	message3.Key = 0
 	message3.Content = "message3 content"
-	NewMessage(message)
 	NewMessage(message2)
 
 	b = IsMultiPosting(message)
