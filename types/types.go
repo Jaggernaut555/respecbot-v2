@@ -5,9 +5,9 @@ import "time"
 type Respec struct {
 	Key        uint `gorm:"primary_key"`
 	Respec     int
-	User       *User `gorm:"ForeignKey:UserKey"`
+	User       *User `gorm:"ForeignKey:UserKey;save_associations:false"`
 	UserKey    uint
-	Channel    *Channel `gorm:"ForeignKey:ChannelKey"`
+	Channel    *Channel `gorm:"ForeignKey:ChannelKey;save_associations:false"`
 	ChannelKey uint
 	UpdatedAt  time.Time
 }
@@ -23,10 +23,10 @@ type User struct {
 type Message struct {
 	Key        uint `gorm:"primary_key"`
 	ID         string
-	Author     *User `gorm:"ForeignKey:UserKey"`
+	Author     *User `gorm:"ForeignKey:UserKey;save_associations:false"`
 	UserKey    uint
 	Content    string
-	Channel    *Channel `gorm:"ForeignKey:ChannelKey"`
+	Channel    *Channel `gorm:"ForeignKey:ChannelKey;save_associations:false"`
 	ChannelKey uint
 	Mentions   []*User `gorm:"-"` // This doesn't need to be stored in the database
 	Time       time.Time
@@ -36,7 +36,7 @@ type Message struct {
 type Channel struct {
 	Key       uint `gorm:"primary_key;AUTO_INCREMENT"`
 	ID        string
-	Server    *Server `gorm:"ForeignKey:ServerKey"`
+	Server    *Server `gorm:"ForeignKey:ServerKey;save_associations:false"`
 	ServerKey uint
 	Active    bool
 	APIID     string
