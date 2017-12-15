@@ -118,6 +118,9 @@ func messageCreate(ds *discordgo.Session, message *discordgo.MessageCreate) {
 }
 
 func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
+	if giver := session.GetUser(reaction.UserID); giver.Bot {
+		return
+	}
 	logging.Log("Reaction added")
 	message, err := session.ChannelMessage(reaction.ChannelID, reaction.MessageID)
 	if err != nil {
@@ -133,6 +136,9 @@ func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 }
 
 func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRemove) {
+	if giver := session.GetUser(reaction.UserID); giver.Bot {
+		return
+	}
 	logging.Log("Reaction removed")
 	message, err := session.ChannelMessage(reaction.ChannelID, reaction.MessageID)
 	if err != nil {
