@@ -1,11 +1,8 @@
 package db
 
 import (
-	"fmt"
 	"testing"
 	"time"
-
-	"github.com/Jaggernaut555/respecbot-v2/logging"
 
 	"github.com/Jaggernaut555/respecbot-v2/types"
 )
@@ -136,15 +133,9 @@ func TestDB(t *testing.T) {
 
 	GetLastMessage(user, channel)
 
-	a := GetUserLastMessages(user, channel, 3)
+	GetUserLastMessages(user, channel, 3)
 
-	c := GetChannelLastMessage(channel)
-
-	for _, v := range a {
-		logging.Log(fmt.Sprintf("%+v", v))
-	}
-
-	logging.Log(fmt.Sprintf("%+v", c))
+	GetChannelLastMessage(channel)
 
 	message2 := new(types.Message)
 	message3 := new(types.Message)

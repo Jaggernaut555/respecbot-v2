@@ -209,31 +209,18 @@ func GetServerTopUser(server *types.Server) *types.User {
 
 // GetServerRulingClass Gets a list of users who hold the top 50% of respec in the given server
 func GetServerRulingClass(server *types.Server) []*types.User {
-	var respec []*types.Respec
 	var users []*types.User
-	respec = GetServerRespec(server)
-	total := GetTotalServerRespec(server)
-	runningTotal := 0
-	for _, v := range respec {
-		if runningTotal < total/2 {
-			users = append(users, v.User)
-		} else {
-			break
-		}
-		runningTotal += v.Respec
+	if err := db.Where("key in (?)", db.Table("respecs").Select("user_key").Where("channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Group("user_key").Having("sum(respec) > (?)", db.Raw("Select avg(sums) FROM (?) WHERE sums > 0", db.Table("respecs").Select("sum(respec) as sums").Group("user_key").Where("channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).QueryExpr()).QueryExpr()).QueryExpr()).Find(&users).Error; err != nil {
+		return nil
 	}
 	return users
 }
 
 // GetServerLosers Get a list of users with a negative score in the given server
 func GetServerLosers(server *types.Server) []*types.User {
-	var respec []*types.Respec
 	var users []*types.User
-	if err := db.Preload("User").Where("respec < 0 AND channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Find(&respec).Error; err != nil {
+	if err := db.Where("key in (?)", db.Table("respecs").Select("user_key").Where("channel_key IN (?)", db.Table("channels").Select("key").Where("server_key = ?", server.Key).QueryExpr()).Group("user_key").Having("sum(respec) < (0)").QueryExpr()).Find(&users).Error; err != nil {
 		return nil
-	}
-	for _, v := range respec {
-		users = append(users, v.User)
 	}
 	return users
 }
@@ -391,8 +378,8 @@ func GetChannelLastMessage(channel *types.Channel) *types.Message {
 
 // IsMessageUnique Check if the author of the given message has posted the same thing in their last 25 posts
 func IsMessageUnique(message *types.Message) bool {
-	var messages []*types.Message
-	if err := db.Table("messages a").Select("a.*").Joins("INNER JOIN (?) as y ON a.key = y.key", db.Table("messages c").Select("c.*").Where("c.channel_key = ? AND c.user_key = ?", message.Channel.Key, message.Author.Key).Order("time DESC").Limit(25).QueryExpr()).Joins("INNER JOIN (?) as x ON a.key = x.key", db.Table("messages b").Select("b.*").Where("b.content LIKE ?", message.Content).QueryExpr()).Find(&messages).Error; err != nil || len(messages) == 0 {
+	var count int
+	if err := db.Model(&types.Message{}).Table("messages a").Joins("INNER JOIN (?) as y ON a.key = y.key", db.Table("messages c").Select("c.key").Where("c.channel_key = ? AND c.user_key = ?", message.Channel.Key, message.Author.Key).Order("time DESC").Limit(25).QueryExpr()).Where("a.content LIKE ?", message.Content).Count(&count).Error; err != nil || count == 0 {
 		return true
 	}
 	return false
@@ -400,8 +387,8 @@ func IsMessageUnique(message *types.Message) bool {
 
 // IsMultiPosting Check if the last 3 posts in the channel are by the author of the given message
 func IsMultiPosting(message *types.Message) bool {
-	var messages []*types.Message
-	if err := db.Table("messages a").Select("a.*").Joins("INNER JOIN (?) as x ON a.key = x.key", db.Table("messages b").Select("b.*").Where("b.channel_key = ?", message.ChannelKey).Order("time DESC").Limit(3).QueryExpr()).Where("a.user_key = ?", message.Author.Key).Find(&messages).Error; err != nil || len(messages) != 3 {
+	var count int
+	if err := db.Table("messages a").Joins("INNER JOIN (?) as x ON a.key = x.key", db.Table("messages b").Select("b.key").Where("b.channel_key = ?", message.ChannelKey).Order("time DESC").Limit(3).QueryExpr()).Where("a.user_key = ?", message.Author.Key).Count(&count).Error; err != nil || count != 3 {
 		return false
 	}
 	return true
