@@ -126,7 +126,7 @@ func reactionAdd(s *discordgo.Session, reaction *discordgo.MessageReactionAdd) {
 	}
 	author := getUser(message.Author)
 	channel := getChannel(reaction.ChannelID)
-	if reaction.UserID != author.ID {
+	if channel.Active && reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, rate.OtherValue)
 		updateServerStatus(channel.Server)
 	}
@@ -141,7 +141,7 @@ func reactionRemove(s *discordgo.Session, reaction *discordgo.MessageReactionRem
 	}
 	author := getUser(message.Author)
 	channel := getChannel(reaction.ChannelID)
-	if reaction.UserID != author.ID {
+	if channel.Active && reaction.UserID != author.ID {
 		rate.RespecOther(author, channel, -rate.OtherValue)
 		updateServerStatus(channel.Server)
 	}
