@@ -64,14 +64,14 @@ func NewListQueue(dataType interface{}) (q *ListQueue) {
 }
 
 //Remove Remove value at index of the queue
-func (q *ListQueue) Remove(index int) (node *Node) {
+func (q *ListQueue) Remove(index int) (data interface{}) {
 	if q.length <= index || index < 0 || q.length <= 0 {
 		return nil
 	}
 	if index == 0 {
 		return q.Pop()
 	}
-	node = q.Start()
+	node := q.Start()
 	for count := 0; count < index; count++ {
 		node = node.next
 	}
@@ -83,17 +83,18 @@ func (q *ListQueue) Remove(index int) (node *Node) {
 	node.prev = nil
 	q.length--
 
-	return node
+	return node.Data
 }
 
 //Push Push data to top of the queue
-func (q *ListQueue) Push(data ...interface{}) *Node {
+func (q *ListQueue) Push(data ...interface{}) (err error) {
 	if len(data) == 0 {
-		return nil
+		return fmt.Errorf("No data being added")
 	}
 
 	for _, v := range data {
 		if reflect.TypeOf(v) != q.dataType {
+			err = fmt.Errorf("Data added of incompatible type")
 			continue
 		}
 		node := new(Node)
@@ -105,27 +106,27 @@ func (q *ListQueue) Push(data ...interface{}) *Node {
 
 		q.length++
 	}
-	return q.End()
+	return err
 }
 
 //Pop Take the top value from bottom of the queue
-func (q *ListQueue) Pop() (node *Node) {
+func (q *ListQueue) Pop() (data interface{}) {
 	if q.Start() == q.root {
 		return nil
 	}
-	node = q.Start()
+	node := q.Start()
 	node.next.prev = node.prev
 	node.prev.next = node.next
 	q.length--
 	node.next = nil
 	node.prev = nil
-	return node
+	return node.Data
 }
 
 //Peek Look at value on bottom of the queue
-func (q ListQueue) Peek() (node *Node) {
+func (q ListQueue) Peek() (data interface{}) {
 	if q.Start() == q.root {
 		return nil
 	}
-	return q.Start()
+	return q.Start().Data
 }

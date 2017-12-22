@@ -60,7 +60,7 @@ func New(shuffleTheDeck bool) Deck {
 // DrawCard - Pick a card from the top of the deck
 func (d Deck) DrawCard() Card {
 	c := d.cards.Pop()
-	return c.Data.(Card)
+	return c.(Card)
 }
 
 // AddCard - Add a card to the deck, optionally shuffle afterwards
@@ -78,7 +78,7 @@ func (d *Deck) Shuffle() {
 	var n int
 	for i := 0; i < numCards; i++ {
 		n = rand.Intn(numCards - i)
-		d.AddCard(d.cards.Remove(n).Data.(Card), false)
+		d.AddCard(d.cards.Remove(n).(Card), false)
 	}
 }
 

@@ -97,8 +97,20 @@ func TestDB(t *testing.T) {
 	respec2.Channel = channel2
 	respec2.User = user2
 	respec2.UserKey = user2.Key
-	respec2.Respec = -50
+	respec2.Respec = 150
 	AddRespec(respec2)
+
+	user3 := new(types.User)
+	user3.ID = "userid3"
+	user3.Name = "username3"
+	user3.APIID = "test"
+	NewUser(user3)
+	respec3 := new(types.Respec)
+	respec3.Channel = channel
+	respec3.User = user3
+	respec3.UserKey = user3.Key
+	respec3.Respec = -50
+	AddRespec(respec3)
 
 	GetLocalRespec(channel)
 

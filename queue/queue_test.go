@@ -6,7 +6,7 @@ import (
 
 func TestQueue(t *testing.T) {
 	var q *ListQueue
-	var node *Node
+	var err error
 
 	data1 := []interface{}{1, "lol", 1.0}
 	data2 := []interface{}{1, 2, 3}
@@ -17,8 +17,8 @@ func TestQueue(t *testing.T) {
 	}
 
 	q = NewListQueue(1)
-	node = q.Push()
-	if node != nil {
+	err = q.Push()
+	if err == nil {
 		t.Error("Push nothing failed")
 	}
 
@@ -33,8 +33,8 @@ func TestQueue(t *testing.T) {
 	if q.String() != "[]" {
 		t.Error("Queue formed incorrectly")
 	}
-	q.Push(data1...)
-	if q.Length() > 1 {
+	err = q.Push(data1...)
+	if q.Length() > 1 || err == nil {
 		t.Error("Could push mismatched types")
 	}
 	if q.String() != "[1]" {
@@ -59,7 +59,7 @@ func TestQueue(t *testing.T) {
 		t.Error("Cannot peek")
 	}
 	item = q.Remove(2)
-	if item == nil || item.Data.(int) != 3 {
+	if item == nil || item.(int) != 3 {
 		t.Error("Remove failed")
 	}
 	q.Pop()
