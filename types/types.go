@@ -39,6 +39,7 @@ type Channel struct {
 	Server    *Server `gorm:"ForeignKey:ServerKey;save_associations:false"`
 	ServerKey uint
 	Active    bool
+	LogActive bool
 	APIID     string
 }
 
@@ -53,9 +54,11 @@ type API interface {
 	Setup() error
 	Listen() error
 	ReplyTo(string, *Message) error
+	ReplyToChannel(string, *Channel) error
 	HandleCommand(*Message) error
 	GetUser(string) *User
 	GetChannel(string) *Channel
+	GetLoggingChannels(*Server) *[]Channel
 	GetServer(string) *Server
 }
 

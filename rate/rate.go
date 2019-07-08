@@ -46,8 +46,7 @@ func AddRespec(user *types.User, channel *types.Channel, rating int) int {
 		return 0
 	}
 	added := addRespecHelp(user, channel, rating)
-
-	logging.Log(fmt.Sprintf("%v %+d respec", user.Name, added))
+	logging.LogToServer(channel.Server, fmt.Sprintf("%v %+d respec", user.Name, added))
 	return added
 }
 
@@ -85,7 +84,7 @@ func addRespecHelp(user *types.User, channel *types.Channel, rating int) (addedR
 func RespecMessage(message *types.Message) int {
 	numRespec := applyRules(message)
 
-	logging.Log(fmt.Sprintf("%v: %v", message.Author.Name, message.Content))
+	logging.LogToServer(message.Channel.Server, fmt.Sprintf("%v: %v", message.Author.Name, message.Content))
 
 	respecMentions(message)
 

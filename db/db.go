@@ -334,9 +334,36 @@ func GetChannel(channelID, APIID string) *types.Channel {
 	return &channel
 }
 
+// GetLoggingChannels returns a list of Channels that receive logging
+func GetLoggingChannels(server *types.Server) *[]types.Channel {
+	var channels []types.Channel
+
+	if err := db.Where("server_key = ? AND log_active = ?", server.Key, 1).Find(&channels).Error; err != nil {
+		return &[]types.Channel{}
+	}
+
+	return &channels
+}
+
+// Returns the channels that are active
+/*
+func GetActiveLoggingChannels(server *types.Server) *[]types.Channel {
+	var channels []types.Channel
+	if err := db.Preload("Channel").Where("server = ? AND log_active = ?", server, true).Error; err != nil {
+		return nil
+	}
+	return &channels
+}
+*/
+
 // UpdateChannel Updates and channel information to the stored channel in database
 func UpdateChannel(channel *types.Channel) {
 	db.Model(&channel).Update("active", channel.Active)
+}
+
+// UpdateLogChannel sets whether or not the Channel receives log messages
+func UpdateLogChannel(channel *types.Channel) {
+	db.Model(&channel).Update("log_active", channel.LogActive)
 }
 
 // NewServer Insert the server into the database. Fills the 'Key' field

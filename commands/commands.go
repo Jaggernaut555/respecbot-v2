@@ -45,6 +45,8 @@ func init() {
 		"stats":    CmdFuncHelpType{cmdStats, "Displays leaderbaord, optionally use 'stats server' or 'stats global'", true, false},
 		"card":     CmdFuncHelpType{cmdCard, "IS A CARD", true, false},
 		"lua":      CmdFuncHelpType{cmdLua, "Lua", true, false},
+		"loghere":	CmdFuncHelpType{cmdLogHere, "Output log here", false, false},
+		"shutup": 	CmdFuncHelpType{cmdLogNotHere, "Shut the fuck up", false, false},
 	}
 }
 
@@ -150,4 +152,23 @@ func cmdCard(api types.API, message *types.Message, args []string) {
 
 func cmdLua(api types.API, message *types.Message, args []string) {
 	scripting.Lua(api, message, args)
+}
+
+// Sets the channel to actively receive logging
+func cmdLogHere(api types.API, message *types.Message, args []string) {
+	if message.Channel.LogActive == true {
+		api.ReplyTo("Yeah, logs here", message)
+		return
+	}
+	message.Channel.LogActive = true
+	db.UpdateLogChannel(message.Channel)
+	api.ReplyTo("Log on me", message)
+}
+
+func cmdLogNotHere(api types.API, message *types.Message, args []string) {
+	if message.Channel.LogActive == false {
+		return
+	}
+	message.Channel.LogActive = false
+	db.UpdateLogChannel(message.Channel)
 }
