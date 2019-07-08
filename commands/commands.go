@@ -165,10 +165,13 @@ func cmdLogHere(api types.API, message *types.Message, args []string) {
 	api.ReplyTo("Log on me", message)
 }
 
+// Sets the channel to stop receiving logging
 func cmdLogNotHere(api types.API, message *types.Message, args []string) {
 	if message.Channel.LogActive == false {
+		api.ReplyTo("Yeah, no logs here", message)
 		return
 	}
 	message.Channel.LogActive = false
 	db.UpdateLogChannel(message.Channel)
+	api.ReplyTo("Alright, shutting up", message)
 }

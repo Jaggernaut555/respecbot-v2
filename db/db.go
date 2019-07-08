@@ -345,17 +345,6 @@ func GetLoggingChannels(server *types.Server) *[]types.Channel {
 	return &channels
 }
 
-// Returns the channels that are active
-/*
-func GetActiveLoggingChannels(server *types.Server) *[]types.Channel {
-	var channels []types.Channel
-	if err := db.Preload("Channel").Where("server = ? AND log_active = ?", server, true).Error; err != nil {
-		return nil
-	}
-	return &channels
-}
-*/
-
 // UpdateChannel Updates and channel information to the stored channel in database
 func UpdateChannel(channel *types.Channel) {
 	db.Model(&channel).Update("active", channel.Active)
