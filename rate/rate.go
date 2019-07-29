@@ -46,8 +46,7 @@ func AddRespec(user *types.User, channel *types.Channel, rating int) int {
 		return 0
 	}
 	added := addRespecHelp(user, channel, rating)
-
-	logging.Log(fmt.Sprintf("%v %+d respec", user.Name, added))
+	logging.LogToServer(channel.Server, fmt.Sprintf("%v %+d respec", user.Name, added))
 	return added
 }
 

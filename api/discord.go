@@ -78,6 +78,11 @@ func (d *discord) ReplyTo(reply string, message *types.Message) error {
 	return err
 }
 
+func (d *discord) ReplyToChannel(reply string, channel *types.Channel) error{
+	_, err := d.ChannelMessageSend(channel.ID, reply)
+	return err
+}
+
 func (d *discord) HandleCommand(message *types.Message) error {
 	commands.HandleCommand(d, message)
 	return nil
@@ -89,6 +94,10 @@ func (d *discord) GetUser(userID string) *types.User {
 
 func (d *discord) GetChannel(channelID string) *types.Channel {
 	return db.GetChannel(channelID, discordName)
+}
+
+func (d *discord) GetLoggingChannels(server *types.Server) *[]types.Channel {
+	return db.GetLoggingChannels(server)
 }
 
 func (d *discord) GetServer(serverID string) *types.Server {

@@ -60,6 +60,10 @@ func main() {
 	}
 
 	logging.Log("Setting up API")
+
+	// Set the logger to have an instance of our API
+	logging.SetAPIInstance(apiInstance)
+
 	err = apiInstance.Setup()
 	if err != nil {
 		logging.Log("API could not set up")
